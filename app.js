@@ -13,7 +13,7 @@ const auth = firebase.auth();
 const db = firebase.firestore(); 
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-// --- DOM COUPLING LAYOUT MAPS ---
+// --- DOM NAVIGATION & MODAL PLUGINS ---
 const logInBtn = document.getElementById('logInBtn');
 const signUpBtn = document.getElementById('signUpBtn');
 const signOutBtn = document.getElementById('signOutBtn'); 
@@ -22,11 +22,21 @@ const closeModalBtn = document.getElementById('closeModalBtn');
 const googleLoginBtn = document.getElementById('googleLoginBtn');
 const globalUnreadBadge = document.getElementById('globalUnreadBadge');
 
-// Structural Onboarding Form Wrappers
+// Split Authentication Components
+const emailAuthForm = document.getElementById('emailAuthForm');
+const authNameFieldContainer = document.getElementById('authNameFieldContainer');
+const authName = document.getElementById('authName');
+const authEmail = document.getElementById('authEmail');
+const authPassword = document.getElementById('authPassword');
+const authSubmitFormBtn = document.getElementById('authSubmitFormBtn');
+const modalAuthTitle = document.getElementById('modalAuthTitle');
+const modalAuthSubtitle = document.getElementById('modalAuthSubtitle');
+
+// Onboarding Struct Holders
 const onboardingModal = document.getElementById('onboardingModal');
 const onboardingForm = document.getElementById('onboardingForm');
 
-// Core App View Panes
+// Core Application Views Map Nodes
 const viewHome = document.getElementById('viewHome');
 const viewNetwork = document.getElementById('viewNetwork');
 const viewCommunity = document.getElementById('viewCommunity');
@@ -44,11 +54,11 @@ const navMessages = document.getElementById('navMessages');
 const navLogo = document.getElementById('navLogo');
 const homeExploreBtn = document.getElementById('homeExploreBtn');
 
-// Inline Messaging Emoji Nodes
+// Message Panel Features
 const emojiToggleBtn = document.getElementById('emojiToggleBtn');
 const emojiPickerPanel = document.getElementById('emojiPickerPanel');
 
-// Profile Dashboard Configurations
+// Profile Customizer Configs
 const toggleEditHubBtn = document.getElementById('toggleEditHubBtn');
 const profileHubStaticView = document.getElementById('profileHubStaticView');
 const profileHubForm = document.getElementById('profileHubForm');
@@ -60,7 +70,7 @@ const hubMajor = document.getElementById('hubMajor');
 const hubBio = document.getElementById('hubBio');
 const hubSkills = document.getElementById('hubSkills');
 
-// Dynamic Feeds Arrays Map Holders
+// Dynamic Marketplace / Feed Elements
 const networkGrid = document.getElementById('networkGrid');
 const studentCounter = document.getElementById('studentCounter');
 const communityPostBox = document.getElementById('communityPostBox');
@@ -72,7 +82,7 @@ const closeMarketModalBtn = document.getElementById('closeMarketModalBtn');
 const marketForm = document.getElementById('marketForm');
 const marketplaceGrid = document.getElementById('marketplaceGrid');
 
-// Chat Container Layout Channels
+// Live Messaging View Setup
 const chatSidebarList = document.getElementById('chatSidebarList');
 const chatWindowHeader = document.getElementById('chatWindowHeader');
 const chatHeaderAvatar = document.getElementById('chatHeaderAvatar');
@@ -83,14 +93,14 @@ const chatFormInputBar = document.getElementById('chatFormInputBar');
 const chatInputField = document.getElementById('chatInputField');
 const chatFallbackPlaceholder = document.getElementById('chatFallbackPlaceholder');
 
-// Global Tracking Registers
+// Global Tracking Frameworks
 let activeChatId = null;
 let chatMessagesUnsubscribe = null;
 let globalUnreadUnsubscribe = null;
 let allStudentsCache = []; 
 let isSigningUp = false; 
 
-// --- PLATFORM VIEWPORT ROUTER ---
+// --- ROUTER VIEW CHANGER ENGINE ---
 function switchView(activeViewName) {
     viewHome.classList.add('hidden');
     viewNetwork.classList.add('hidden');
@@ -123,9 +133,7 @@ function switchView(activeViewName) {
     } else if (activeViewName === 'messages') {
         viewMessages.classList.remove('hidden');
         navMessages.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none relative";
-        
-        // Clear badge flag variables when opening the chat room view
-        if (activeChatId) clearUnreadBadgeStateMarker(activeChatId);
+        if (activeChatId) { clearUnreadBadgeStateMarker(activeChatId); }
     }
     lucide.createIcons();
 }
@@ -139,64 +147,68 @@ navMessages.addEventListener('click', () => switchView('messages'));
 navLogo.addEventListener('click', () => switchView('home')); 
 homeExploreBtn.addEventListener('click', () => switchView('network')); 
 
-// --- SPLIT AUTH WINDOW HOOK MANAGEMENT (GITHUB CONFIGURATION) ---
+// --- GITHUB-STYLE ENTRANCE MODAL TOGGLES ---
 logInBtn.addEventListener('click', () => {
     isSigningUp = false;
-    document.querySelector('#loginModal h3').innerText = "Log In to Homies";
-    document.querySelector('#loginModal p').innerText = "Welcome back! Connect to your campus account.";
+    modalAuthTitle.innerText = "Log In to Homies";
+    modalAuthSubtitle.innerText = "Welcome back! Connect to your campus account.";
+    authNameFieldContainer.classList.add('hidden');
+    authName.removeAttribute('required');
+    authSubmitFormBtn.innerText = "Log In";
     loginModal.classList.remove('hidden');
 });
 
 signUpBtn.addEventListener('click', () => {
     isSigningUp = true;
-    document.querySelector('#loginModal h3').innerText = "Create Your Account";
-    document.querySelector('#loginModal p').innerText = "Join your exclusive student framework node today.";
+    modalAuthTitle.innerText = "Create Your Account";
+    modalAuthSubtitle.innerText = "Join your exclusive student framework node today.";
+    authNameFieldContainer.classList.remove('hidden');
+    authName.setAttribute('required', 'true');
+    authSubmitFormBtn.innerText = "Sign Up";
     loginModal.classList.remove('hidden');
 });
 
-closeModalBtn.addEventListener('click', () => loginModal.classList.add('hidden'));
+closeModalBtn.addEventListener('click', () => {
+    loginModal.classList.add('hidden');
+    emailAuthForm.reset();
+});
+
 openMarketModalBtn.addEventListener('click', () => marketModal.classList.remove('hidden'));
 closeMarketModalBtn.addEventListener('click', () => marketModal.classList.add('hidden'));
 
-// --- INLINE EMOJI PANEL HANDLERS ---
-emojiToggleBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    emojiPickerPanel.classList.toggle('hidden');
-});
+// --- TRADITIONAL EMAIL / PASSWORD AUTH SUBMISSION FLOW ---
+emailAuthForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const emailVal = authEmail.value.trim();
+    const passwordVal = authPassword.value;
+    const nameVal = authName.value.trim();
 
-document.addEventListener('click', (e) => {
-    if (!emojiPickerPanel.contains(e.target) && e.target !== emojiToggleBtn) {
-        emojiPickerPanel.classList.add('hidden');
+    if (isSigningUp) {
+        // Sign Up Flow
+        auth.createUserWithEmailAndPassword(emailVal, passwordVal)
+            .then((userCredential) => {
+                const user = userCredential.user;
+                return user.updateProfile({ displayName: nameVal }).then(() => user);
+            })
+            .then((user) => {
+                loginModal.classList.add('hidden');
+                emailAuthForm.reset();
+                evaluateAuthUserRoute(user);
+            })
+            .catch(err => alert("Registration Error: " + err.message));
+    } else {
+        // Log In Flow
+        auth.signInWithEmailAndPassword(emailVal, passwordVal)
+            .then((userCredential) => {
+                loginModal.classList.add('hidden');
+                emailAuthForm.reset();
+                evaluateAuthUserRoute(userCredential.user);
+            })
+            .catch(err => alert("Log In Error: " + err.message));
     }
 });
 
-document.querySelectorAll('.emoji-opt').forEach(elm => {
-    elm.addEventListener('click', () => {
-        chatInputField.value += elm.innerText;
-        emojiPickerPanel.classList.add('hidden');
-        chatInputField.focus();
-    });
-});
-
-// --- VISUAL UI GRAPHICS LOGIC ---
-function getAvatarColorClass(name) {
-    if (!name) return "bg-slate-800";
-    const colors = ["bg-blue-600", "bg-emerald-600", "bg-indigo-600", "bg-purple-600", "bg-pink-600", "bg-teal-600", "bg-orange-600"];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    return colors[Math.abs(hash) % colors.length];
-}
-
-function getCategoryBadgeStyle(category) {
-    switch(category) {
-        case 'Skill Trade': return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-        case 'Books & Notes': return 'bg-purple-50 text-purple-700 border border-purple-200';
-        case 'Electronics': return 'bg-amber-50 text-amber-700 border border-amber-200';
-        default: return 'bg-slate-50 text-slate-700 border border-slate-200';
-    }
-}
-
-// --- GOOGLE PASS INTERFACES ---
+// --- GOOGLE BACK-UP INTERFACE ---
 googleLoginBtn.addEventListener('click', () => {
     auth.signInWithPopup(googleProvider)
         .then(result => {
@@ -208,9 +220,7 @@ googleLoginBtn.addEventListener('click', () => {
 function evaluateAuthUserRoute(user) {
     db.collection('users').doc(user.uid).get()
         .then(doc => {
-            if (isSigningUp && !doc.exists) {
-                onboardingModal.classList.remove('hidden');
-            } else if (!isSigningUp && !doc.exists) {
+            if (!doc.exists) {
                 onboardingModal.classList.remove('hidden');
             }
         });
@@ -223,7 +233,7 @@ onboardingForm.addEventListener('submit', (e) => {
 
     db.collection('users').doc(currentUser.uid).set({
         uid: currentUser.uid,
-        fullName: currentUser.displayName,
+        fullName: currentUser.displayName || "Student Homie",
         email: currentUser.email,
         photoUrl: currentUser.photoURL || "",
         collegeName: document.getElementById('obCollege').value.trim(),
@@ -241,7 +251,7 @@ signOutBtn.addEventListener('click', () => {
     auth.signOut().then(() => { switchView('home'); });
 });
 
-// --- REAL-TIME LIVE UNREAD NOTIFICATION BADGE WATCHER ---
+// --- REAL-TIME LIVE NOTIFICATION BADGE CONTROLLER ---
 function initializeGlobalUnreadBadgeListener(currentUid) {
     if (globalUnreadUnsubscribe) globalUnreadUnsubscribe();
 
@@ -249,7 +259,6 @@ function initializeGlobalUnreadBadgeListener(currentUid) {
         .where('participants', 'array-contains', currentUid)
         .onSnapshot(snapshot => {
             let totalUnreadThreadsCount = 0;
-
             snapshot.forEach(doc => {
                 const chatData = doc.data();
                 if (chatData.lastSenderUid && chatData.lastSenderUid !== currentUid) {
@@ -281,7 +290,7 @@ function clearUnreadBadgeStateMarker(chatId) {
     });
 }
 
-// --- GLOBAL APP AUTH WATCHER PIPELINE ---
+// --- GLOBAL AUTH STATE WATCHER ---
 auth.onAuthStateChanged(user => {
     if (user) {
         logInBtn.classList.add('hidden');
@@ -315,7 +324,45 @@ auth.onAuthStateChanged(user => {
     listenToCommunityHub();
 });
 
-// --- PROFILE MANIPULATION AGENTS ---
+// --- INLINE MESSAGING EMOJI POPUPS ---
+emojiToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    emojiPickerPanel.classList.toggle('hidden');
+});
+
+document.addEventListener('click', (e) => {
+    if (!emojiPickerPanel.contains(e.target) && e.target !== emojiToggleBtn) {
+        emojiPickerPanel.classList.add('hidden');
+    }
+});
+
+document.querySelectorAll('.emoji-opt').forEach(elm => {
+    elm.addEventListener('click', () => {
+        chatInputField.value += elm.innerText;
+        emojiPickerPanel.classList.add('hidden');
+        chatInputField.focus();
+    });
+});
+
+// --- DESIGN HELPER UTILITIES ---
+function getAvatarColorClass(name) {
+    if (!name) return "bg-slate-800";
+    const colors = ["bg-blue-600", "bg-emerald-600", "bg-indigo-600", "bg-purple-600", "bg-pink-600", "bg-teal-600", "bg-orange-600"];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+}
+
+function getCategoryBadgeStyle(category) {
+    switch(category) {
+        case 'Skill Trade': return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+        case 'Books & Notes': return 'bg-purple-50 text-purple-700 border border-purple-200';
+        case 'Electronics': return 'bg-amber-50 text-amber-700 border border-amber-200';
+        default: return 'bg-slate-50 text-slate-700 border border-slate-200';
+    }
+}
+
+// --- PROFILE SETTINGS MANAGER ---
 function renderMyShowcaseDashboard(uid) {
     db.collection('users').doc(uid).onSnapshot(doc => {
         if (!doc.exists) return;
@@ -361,6 +408,8 @@ function openHubEditingState() {
     lucide.createIcons();
 }
 
+function deleteListing(id) { if (confirm("Delete listing?")) db.collection('listings').doc(id).delete(); };
+
 function closeHubEditingState() {
     profileHubForm.classList.add('hidden');
     profileHubStaticView.classList.remove('hidden');
@@ -388,7 +437,7 @@ profileHubForm.addEventListener('submit', (e) => {
     }, { merge: true }).then(() => { closeHubEditingState(); });
 });
 
-// --- CAMPUS NETWORKING DIRECTORY RUNTIMES ---
+// --- CAMPUS ROSTER SERVICES ---
 function listenToStudentNetwork() {
     db.collection('users').orderBy('createdAt', 'desc')
         .onSnapshot(snapshot => {
@@ -456,7 +505,7 @@ document.getElementById('networkSearchInput').addEventListener('input', (e) => {
     renderFilteredNetwork(filtered);
 });
 
-// --- MESSAGING CHANNEL MATRIX (WHATSAPP PARADIGMS) ---
+// --- MESSAGING CHANNEL MATRIX (WHATSAPP STYLES) ---
 window.openMarketplaceChat = function(sellerUid, sellerName, listingTitle) {
     const currentUser = auth.currentUser;
     if (!currentUser) return alert("Sign in to contact sellers!");
@@ -467,7 +516,7 @@ window.openMarketplaceChat = function(sellerUid, sellerName, listingTitle) {
     db.collection('chats').doc(combinedChatId).set({
         chatId: combinedChatId,
         participants: [currentUser.uid, sellerUid],
-        buyerName: currentUser.displayName,
+        buyerName: currentUser.displayName || "Buyer",
         sellerName: sellerName,
         listingTitle: listingTitle,
         lastMessage: "Conversation opened...",
@@ -538,7 +587,6 @@ function loadActiveChatMessageStream(chatId, peerName, listingTitle) {
     chatHeaderAvatar.className = `w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white uppercase ${getAvatarColorClass(peerName)}`;
     chatHeaderAvatar.innerText = peerName.charAt(0);
 
-    // Clear alert triggers upon focus selection instantly
     clearUnreadBadgeStateMarker(chatId);
 
     if(chatMessagesUnsubscribe) chatMessagesUnsubscribe();
@@ -584,7 +632,7 @@ chatFormInputBar.addEventListener('submit', (e) => {
 
     const messagePayload = {
         senderUid: currentUser.uid,
-        senderName: currentUser.displayName.split(' ')[0],
+        senderName: (currentUser.displayName || "Homie").split(' ')[0],
         text: messageText,
         timestamp: Date.now()
     };
@@ -662,21 +710,21 @@ window.submitComment = function(postId) {
     const user = auth.currentUser; const input = document.getElementById(`commentInput-${postId}`);
     if (!user || !input.value.trim()) return;
     db.collection('forum').doc(postId).update({
-        comments: firebase.firestore.FieldValue.arrayUnion({ authorUid: user.uid, authorName: user.displayName.split(' ')[0], content: input.value.trim(), createdAt: Date.now() })
+        comments: firebase.firestore.FieldValue.arrayUnion({ authorUid: user.uid, authorName: (user.displayName || "Homie").split(' ')[0], content: input.value.trim(), createdAt: Date.now() })
     }).then(() => input.value = "");
 };
 
 communityForm.addEventListener('submit', (e) => {
     e.preventDefault(); const currentUser = auth.currentUser; if (!currentUser) return;
-    db.collection('forum').add({ authorUid: currentUser.uid, authorName: currentUser.displayName, content: document.getElementById('postContent').value, isAnonymous: document.getElementById('postAnonymous').checked, upvotes: [], comments: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(() => communityForm.reset());
+    db.collection('forum').add({ authorUid: currentUser.uid, authorName: currentUser.displayName || "Homie", content: document.getElementById('postContent').value, isAnonymous: document.getElementById('postAnonymous').checked, upvotes: [], comments: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(() => communityForm.reset());
 });
 
 window.deleteForumPost = function(postId) { if (confirm("Delete post?")) db.collection('forum').doc(postId).delete(); };
 
-// --- MARKETPLACE ENGINE ---
+// --- MARKETPLACE LISTING GENERATORS ---
 marketForm.addEventListener('submit', (e) => {
     e.preventDefault(); const currentUser = auth.currentUser; if (!currentUser) return;
-    db.collection('listings').add({ sellerUid: currentUser.uid, sellerName: currentUser.displayName, sellerEmail: currentUser.email, title: document.getElementById('itemTitle').value, category: document.getElementById('itemCategory').value, price: document.getElementById('itemPrice').value, description: document.getElementById('itemDescription').value, createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(() => { marketForm.reset(); marketModal.classList.add('hidden'); });
+    db.collection('listings').add({ sellerUid: currentUser.uid, sellerName: currentUser.displayName || "Homie", sellerEmail: currentUser.email, title: document.getElementById('itemTitle').value, category: document.getElementById('itemCategory').value, price: document.getElementById('itemPrice').value, description: document.getElementById('itemDescription').value, createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(() => { marketForm.reset(); marketModal.classList.add('hidden'); });
 });
 
 function listenToMarketplace() {
@@ -716,5 +764,5 @@ function listenToMarketplace() {
 
 window.deleteListing = function(id) { if (confirm("Delete listing?")) db.collection('listings').doc(id).delete(); };
 
-// Fire Up Active Catalog Services
+// Run Core Services
 listenToStudentNetwork();
