@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homies - For the Students, by the Students</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800">
+
+    <nav class="bg-blue-950 text-white px-6 py-4 flex justify-between items-center shadow-md">
+        <div class="text-2xl font-bold tracking-wide">HOMIES<span class="text-blue-400">.</span></div>
+        <div class="space-x-6 hidden md:flex text-sm font-medium">
+            <a href="#" class="hover:text-blue-400 transition">Marketplace</a>
+            <a href="#" class="hover:text-blue-400 transition">Community Hub</a>
+            <a href="#" class="hover:text-blue-400 transition">Network</a>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <button id="signInBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2 rounded-md transition text-sm">
+                Sign In
+            </button>
+            <button id="signOutBtn" class="bg-slate-700 hover:bg-slate-600 text-white font-medium px-4 py-2 rounded-md transition text-sm hidden">
+                Sign Out
+            </button>
+        </div>
+    </nav>
+
+    <header class="bg-blue-900 text-white py-20 px-6 text-center relative overflow-hidden">
+        <div class="max-w-3xl mx-auto relative z-10">
+            <span class="bg-blue-800 text-blue-300 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full">Global Student Hub</span>
+            <h1 class="text-4xl md:text-6xl font-extrabold mt-4 tracking-tight">For the Students,<br> by the Students.</h1>
+            <p class="mt-6 text-lg text-blue-100 max-w-xl mx-auto">
+                The ultimate free marketplace and community space to trade skills, build networks, and collaborate. No credits. No fees.
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-12 space-y-16">
+
+        <section>
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-blue-950 tracking-tight">Explore the Student Network</h2>
+                    <p class="text-sm text-slate-500 mt-1">Connect with other homies, trade skills, and collaborate.</p>
+                </div>
+                <span id="studentCounter" class="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">Loading network...</span>
+            </div>
+
+            <div id="networkGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+        </section>
+
+        <section class="border-t border-slate-200 pt-12">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-blue-950 tracking-tight">Community Hub</h2>
+                <p class="text-sm text-slate-500 mt-1">Share thoughts, ask questions, or post announcements anonymously or publicly.</p>
+            </div>
+
+            <div id="communityPostBox" class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm mb-8 hidden">
+                <form id="communityForm" class="space-y-4">
+                    <textarea id="postContent" placeholder="What's happening on campus? Ask anything..." rows="3" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600 bg-slate-50 focus:bg-white transition"></textarea>
+                    <div class="flex items-center justify-between">
+                        <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer select-none">
+                            <input type="checkbox" id="postAnonymous" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4">
+                            Post Anonymously
+                        </label>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-md transition text-xs shadow">
+                            Share to Feed
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="communityGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                </div>
+        </section>
+
+        <section class="border-t border-slate-200 pt-12">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-blue-950 tracking-tight">Student Marketplace</h2>
+                    <p class="text-sm text-slate-500 mt-1">Find textbooks, housing, skill trades, or gigs from peers.</p>
+                </div>
+                <button id="openMarketModalBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-md transition text-xs shadow hidden">
+                    + Post a Listing
+                </button>
+            </div>
+
+            <div id="marketplaceGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+        </section>
+
+    </main>
+
+    <div id="loginModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl relative">
+            <button id="closeModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+            <h3 class="text-xl font-bold text-blue-950 text-center">Welcome to Homies</h3>
+            <p class="text-xs text-slate-500 text-center mt-1 mb-6">Join your global student community</p>
+            
+            <button id="googleLoginBtn" class="w-full border border-slate-300 hover:bg-slate-50 font-medium py-2.5 rounded-md flex items-center justify-center gap-2 text-sm transition mb-4">
+                <span class="font-bold text-red-500">G</span> Sign in with Google
+            </button>
+
+            <div class="relative flex py-2 items-center my-2">
+                <div class="flex-grow border-t border-slate-200"></div>
+                <span class="flex-shrink mx-4 text-xs text-slate-400 uppercase">Or Phone OTP</span>
+                <div class="flex-grow border-t border-slate-200"></div>
+            </div>
+
+            <div class="space-y-3">
+                <input type="tel" placeholder="+91 00000 00000" class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
+                <button class="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold py-2.5 rounded-md transition shadow">
+                    Send OTP Verification
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="profileModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
+            <h3 class="text-xl font-bold text-blue-950 text-center">Complete Your Profile</h3>
+            <p class="text-xs text-slate-500 text-center mt-1 mb-6">Tell other homies a bit about yourself!</p>
+            
+            <form id="profileForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">College / University</label>
+                    <input type="text" id="profileCollege" placeholder="e.g., Stanford University" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Major / Course</label>
+                    <input type="text" id="profileMajor" placeholder="e.g., Computer Science" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Skills to Share / Trade</label>
+                    <textarea id="profileSkills" placeholder="e.g., Python, Video Editing, UI Design" rows="3" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600"></textarea>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold py-2.5 rounded-md transition shadow mt-2">
+                    Save Profile & Explore
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="marketModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl relative">
+            <button id="closeMarketModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+            <h3 class="text-xl font-bold text-blue-950 text-center">Create a Listing</h3>
+            <p class="text-xs text-slate-500 text-center mt-1 mb-6">What are you offering or looking for?</p>
+            
+            <form id="marketForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Listing Title</label>
+                    <input type="text" id="itemTitle" placeholder="e.g., Calculus 1 Tutoring or Chemistry Textbook" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Category</label>
+                    <select id="itemCategory" class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600 bg-white">
+                        <option value="Skill Trade">Skill Trade / Tutoring</option>
+                        <option value="Books & Notes">Books & Notes</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Other">Other / Miscellaneous</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Price / Deal Type</label>
+                    <input type="text" id="itemPrice" placeholder="e.g., Free, $20, or Trade for UI Design" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Description</label>
+                    <textarea id="itemDescription" placeholder="Provide details about the condition, your availability, etc." rows="3" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600"></textarea>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold py-2.5 rounded-md transition shadow mt-2">
+                    Publish Listing
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="app.js"></script>
+</body>
+</html>
