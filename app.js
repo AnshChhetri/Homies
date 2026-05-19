@@ -7,41 +7,56 @@ const firebaseConfig = {
   appId: "1:203127709993:web:c29a1b36aba3e01dd6d738"
 };
 
-// Initialize Firebase
+// Core Backends Instantiation Pipeline
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore(); 
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-// Navbar Elements
+// DOM Selector Architecture Binds
 const signInBtn = document.getElementById('signInBtn');
 const signOutBtn = document.getElementById('signOutBtn'); 
 const loginModal = document.getElementById('loginModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const googleLoginBtn = document.getElementById('googleLoginBtn');
 
-// View Containers
+// View Layout Targets
 const viewHome = document.getElementById('viewHome');
 const viewNetwork = document.getElementById('viewNetwork');
 const viewCommunity = document.getElementById('viewCommunity');
 const viewMarketplace = document.getElementById('viewMarketplace');
+const viewMyProfile = document.getElementById('viewMyProfile'); 
+const viewMessages = document.getElementById('viewMessages'); 
 
-// Navigation Buttons
+// Navigation Anchors
 const navHome = document.getElementById('navHome');
 const navNetwork = document.getElementById('navNetwork');
 const navCommunity = document.getElementById('navCommunity');
 const navMarketplace = document.getElementById('navMarketplace');
+const navMyProfile = document.getElementById('navMyProfile'); 
+const navMessages = document.getElementById('navMessages'); 
 const navLogo = document.getElementById('navLogo');
 const homeExploreBtn = document.getElementById('homeExploreBtn');
 
-// Profile Dashboard Elements
-const myProfileSection = document.getElementById('myProfileSection');
-const editProfileBtn = document.getElementById('editProfileBtn');
-const profileModal = document.getElementById('profileModal');
-const profileForm = document.getElementById('profileForm');
-const closeProfileModalBtn = document.getElementById('closeProfileModalBtn');
+// Emoji Picker Specific Structural Handles
+const emojiToggleBtn = document.getElementById('emojiToggleBtn');
+const emojiPickerPanel = document.getElementById('emojiPickerPanel');
 
-// Content Feed Node References
+// Profile Hub Workspace Selectors
+const toggleEditHubBtn = document.getElementById('toggleEditHubBtn');
+const profileHubStaticView = document.getElementById('profileHubStaticView');
+const profileHubForm = document.getElementById('profileHubForm');
+const cancelHubEditBtn = document.getElementById('cancelHubEditBtn');
+
+const hubPhotoUrl = document.getElementById('hubPhotoUrl');
+const hubCollege = document.getElementById('hubCollege');
+const hubMajor = document.getElementById('hubMajor');
+const hubBio = document.getElementById('hubBio');
+const hubSkills = document.getElementById('hubSkills');
+const hubLinkedIn = document.getElementById('hubLinkedIn');
+const hubGitHub = document.getElementById('hubGitHub');
+
+// Dynamic Feeds Node Targets
 const networkGrid = document.getElementById('networkGrid');
 const studentCounter = document.getElementById('studentCounter');
 const communityPostBox = document.getElementById('communityPostBox');
@@ -53,57 +68,94 @@ const closeMarketModalBtn = document.getElementById('closeMarketModalBtn');
 const marketForm = document.getElementById('marketForm');
 const marketplaceGrid = document.getElementById('marketplaceGrid');
 
-// --- SINGLE PAGE ROUTER SYSTEM ENGINE ---
+// Chat View Layout Elements
+const chatSidebarList = document.getElementById('chatSidebarList');
+const chatWindowHeader = document.getElementById('chatWindowHeader');
+const chatHeaderAvatar = document.getElementById('chatHeaderAvatar');
+const chatHeaderName = document.getElementById('chatHeaderName');
+const chatHeaderItem = document.getElementById('chatHeaderItem');
+const chatMessageStream = document.getElementById('chatMessageStream');
+const chatFormInputBar = document.getElementById('chatFormInputBar');
+const chatInputField = document.getElementById('chatInputField');
+const chatFallbackPlaceholder = document.getElementById('chatFallbackPlaceholder');
+
+let activeChatId = null;
+let chatMessagesUnsubscribe = null;
+let allStudentsCache = []; 
+
+// --- SINGLE PAGE ROUTER ENGINE ---
 function switchView(activeViewName) {
-    // 1. Hide all main content panels instantly
     viewHome.classList.add('hidden');
     viewNetwork.classList.add('hidden');
     viewCommunity.classList.add('hidden');
     viewMarketplace.classList.add('hidden');
+    viewMyProfile.classList.add('hidden');
+    viewMessages.classList.add('hidden');
 
-    // 2. Reset navbar button highlighting rules to default gray text strings
-    const buttons = [navHome, navNetwork, navCommunity, navMarketplace];
+    const buttons = [navHome, navNetwork, navCommunity, navMarketplace, navMyProfile, navMessages];
     buttons.forEach(btn => {
-        btn.className = "text-slate-300 hover:text-white transition pb-1 focus:outline-none";
+        btn.className = "text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none";
     });
 
-    // 3. Selectively reveal the active panel and light up its navbar text element
     if (activeViewName === 'home') {
         viewHome.classList.remove('hidden');
-        navHome.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 focus:outline-none";
-        // Hide personal profile container on clean home page view
-        myProfileSection.classList.add('hidden');
-    } else {
-        // Bring back personal profile section when on app data views (if logged in)
-        if (auth.currentUser) {
-            myProfileSection.classList.remove('hidden');
-        }
-        
-        if (activeViewName === 'network') {
-            viewNetwork.classList.remove('hidden');
-            navNetwork.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 focus:outline-none";
-        } else if (activeViewName === 'community') {
-            viewCommunity.classList.remove('hidden');
-            navCommunity.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 focus:outline-none";
-        } else if (activeViewName === 'marketplace') {
-            viewMarketplace.classList.remove('hidden');
-            navMarketplace.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 focus:outline-none";
-        }
+        navHome.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none";
+    } else if (activeViewName === 'network') {
+        viewNetwork.classList.remove('hidden');
+        navNetwork.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none";
+    } else if (activeViewName === 'community') {
+        viewCommunity.classList.remove('hidden');
+        navCommunity.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none";
+    } else if (activeViewName === 'marketplace') {
+        viewMarketplace.classList.remove('hidden');
+        navMarketplace.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none";
+    } else if (activeViewName === 'myprofile') {
+        viewMyProfile.classList.remove('hidden');
+        navMyProfile.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none";
+        closeHubEditingState();
+    } else if (activeViewName === 'messages') {
+        viewMessages.classList.remove('hidden');
+        navMessages.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none";
     }
+    // Synchronize rendering state parameters for vector graphics elements
+    lucide.createIcons();
 }
 
-// Attach Single-Page Event click managers to navbar tabs
 navHome.addEventListener('click', () => switchView('home'));
 navNetwork.addEventListener('click', () => switchView('network'));
 navCommunity.addEventListener('click', () => switchView('community'));
 navMarketplace.addEventListener('click', () => switchView('marketplace'));
-navLogo.addEventListener('click', () => switchView('home')); // Logo targets landing homepage
-homeExploreBtn.addEventListener('click', () => switchView('network')); // Call to Action routing button
+navMyProfile.addEventListener('click', () => switchView('myprofile'));
+navMessages.addEventListener('click', () => switchView('messages'));
+navLogo.addEventListener('click', () => switchView('home')); 
+homeExploreBtn.addEventListener('click', () => switchView('network')); 
 
-// --- HELPER RENDERING ENGINES ---
+// --- INLINE INTEGRATED EMOJI KEYBOARD ENGINE ---
+emojiToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    emojiPickerPanel.classList.toggle('hidden');
+});
+
+// Close floating layout when clicking outside the container context grid
+document.addEventListener('click', (e) => {
+    if (!emojiPickerPanel.contains(e.target) && e.target !== emojiToggleBtn) {
+        emojiPickerPanel.classList.add('hidden');
+    }
+});
+
+document.querySelectorAll('.emoji-opt').forEach(emojiElement => {
+    emojiElement.addEventListener('click', () => {
+        const insertionEmoji = emojiElement.innerText;
+        chatInputField.value += insertionEmoji;
+        emojiPickerPanel.classList.add('hidden');
+        chatInputField.focus();
+    });
+});
+
+// --- HELPER GRAPHICS HANDLERS ---
 function getAvatarColorClass(name) {
-    if (!name) return "bg-blue-600";
-    const colors = ["bg-blue-600", "bg-emerald-600", "bg-indigo-600", "bg-violet-600", "bg-purple-600", "bg-pink-600", "bg-cyan-600", "bg-teal-600", "bg-orange-600"];
+    if (!name) return "bg-slate-800";
+    const colors = ["bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600", "bg-blue-600", "bg-emerald-600", "bg-indigo-600", "bg-purple-600", "bg-pink-600", "bg-teal-600", "bg-orange-600"];
     let hash = 0;
     for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
     return colors[Math.abs(hash) % colors.length];
@@ -118,45 +170,76 @@ function getCategoryBadgeStyle(category) {
     }
 }
 
-// Auth and Profile Event Managers
 signInBtn.addEventListener('click', () => loginModal.classList.remove('hidden'));
 closeModalBtn.addEventListener('click', () => loginModal.classList.add('hidden'));
-editProfileBtn.addEventListener('click', () => populateProfileFormForEditing());
-closeProfileModalBtn.addEventListener('click', () => profileModal.classList.add('hidden'));
 openMarketModalBtn.addEventListener('click', () => marketModal.classList.remove('hidden'));
 closeMarketModalBtn.addEventListener('click', () => marketModal.classList.add('hidden'));
 
 window.addEventListener('click', (e) => {
     if (e.target === loginModal) loginModal.classList.add('hidden');
     if (e.target === marketModal) marketModal.classList.add('hidden');
-    if (e.target === profileModal) profileModal.classList.add('hidden');
 });
 
+// --- GOOGLE SECURITY LINK AGENT ---
 googleLoginBtn.addEventListener('click', () => {
     auth.signInWithPopup(googleProvider)
         .then(result => {
             loginModal.classList.add('hidden'); 
             checkUserProfile(result.user);     
-        }).catch(() => alert("Could not connect to Google."));
+        }).catch(() => alert("Authentication engine dropped."));
 });
 
 signOutBtn.addEventListener('click', () => {
-    auth.signOut().then(() => alert("Logged out safely!"));
+    auth.signOut().then(() => {
+        switchView('home'); 
+    });
 });
 
+auth.onAuthStateChanged(user => {
+    if (user) {
+        signInBtn.innerText = `${user.displayName.split(' ')[0]}`;
+        signInBtn.className = "bg-slate-950 text-white text-xs uppercase tracking-wide font-bold px-5 py-2.5 rounded-xl border border-slate-800 shadow-sm";
+        signOutBtn.classList.remove('hidden');
+        openMarketModalBtn.classList.remove('hidden');
+        communityPostBox.classList.remove('hidden'); 
+        navMyProfile.classList.remove('hidden'); 
+        navMessages.classList.remove('hidden'); 
+        document.getElementById('currentUserNameInbox').innerText = user.displayName.toLowerCase().replace(/\s+/g, '_');
+        
+        renderMyShowcaseDashboard(user.uid);
+        listenToUserInboxChats();
+    } else {
+        signInBtn.innerText = "Sign In";
+        signInBtn.className = "bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl transition text-xs uppercase tracking-wide shadow-md";
+        signOutBtn.classList.add('hidden');
+        openMarketModalBtn.classList.add('hidden');
+        communityPostBox.classList.add('hidden'); 
+        navMyProfile.classList.add('hidden'); 
+        navMessages.classList.add('hidden'); 
+        marketModal.classList.add('hidden');
+        
+        if(chatMessagesUnsubscribe) chatMessagesUnsubscribe();
+        chatSidebarList.innerHTML = "";
+    }
+    listenToMarketplace();
+    listenToCommunityHub();
+});
+
+// --- PROFILE SETTINGS SYNCHRONIZER ENGINE ---
 function renderMyShowcaseDashboard(uid) {
     db.collection('users').doc(uid).onSnapshot(doc => {
         if (!doc.exists) return;
         const data = doc.data();
+        
         document.getElementById('myProfileName').innerText = data.fullName || "Student Homie";
-        document.getElementById('myProfileHeadline').innerText = `🎓 Studied ${data.major || 'Undecided'} at ${data.collegeName || 'Global Campus'}`;
+        document.getElementById('myProfileHeadline').innerText = `🎓 ${data.major || 'Undecided'} at ${data.collegeName || 'Global Campus'}`;
         document.getElementById('myProfileBio').innerText = data.bio ? `"${data.bio}"` : '"No bio set yet."';
 
         const avatarBox = document.getElementById('myProfileAvatarBox');
         if (data.photoUrl) {
-            avatarBox.innerHTML = `<img src="${data.photoUrl}" class="w-full h-full object-cover">`;
+            avatarBox.innerHTML = `<img src="${data.photoUrl}" class="w-full h-full object-cover rounded-full">`;
         } else {
-            avatarBox.className = `w-28 h-28 rounded-full border-4 border-white ${getAvatarColorClass(data.fullName)} shadow-md flex items-center justify-center text-3xl font-bold text-white uppercase`;
+            avatarBox.className = `w-24 h-24 rounded-full border-4 border-white ${getAvatarColorClass(data.fullName)} shadow-md flex items-center justify-center text-3xl font-bold text-white uppercase`;
             avatarBox.innerText = data.fullName ? data.fullName.charAt(0) : "H";
         }
 
@@ -166,7 +249,7 @@ function renderMyShowcaseDashboard(uid) {
             data.skills.split(',').forEach(skill => {
                 if(!skill.trim()) return;
                 const span = document.createElement('span');
-                span.className = "bg-blue-50 text-blue-700 text-[10px] font-semibold px-2 py-0.5 rounded border border-blue-100";
+                span.className = "bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-md border border-blue-100";
                 span.innerText = skill.trim();
                 tagsContainer.appendChild(span);
             });
@@ -176,40 +259,51 @@ function renderMyShowcaseDashboard(uid) {
         if (data.linkedin) { lnk.href = data.linkedin; lnk.classList.remove('hidden'); } else { lnk.classList.add('hidden'); }
         const gth = document.getElementById('myProfileGitHub');
         if (data.github) { gth.href = data.github; gth.classList.remove('hidden'); } else { gth.classList.add('hidden'); }
-    });
-}
 
-function populateProfileFormForEditing() {
-    const user = auth.currentUser;
-    if(!user) return;
-    db.collection('users').doc(user.uid).get().then(doc => {
-        if(doc.exists) {
-            const data = doc.data();
-            document.getElementById('profilePhotoUrl').value = data.photoUrl || "";
-            document.getElementById('profileCollege').value = data.collegeName || "";
-            document.getElementById('profileMajor').value = data.major || "";
-            document.getElementById('profileBio').value = data.bio || "";
-            document.getElementById('profileSkills').value = data.skills || "";
-            document.getElementById('profileLinkedInLink').value = data.linkedin || "";
-            document.getElementById('profileGitHubLink').value = data.github || "";
-        }
-        profileModal.classList.remove('hidden');
+        hubPhotoUrl.value = data.photoUrl || "";
+        hubCollege.value = data.collegeName || "";
+        hubMajor.value = data.major || "";
+        hubBio.value = data.bio || "";
+        hubSkills.value = data.skills || "";
+        hubLinkedIn.value = data.linkedin || "";
+        hubGitHub.value = data.github || "";
+        lucide.createIcons();
     });
 }
 
 function checkUserProfile(user) {
     db.collection('users').doc(user.uid).get()
         .then(doc => {
-            if (doc.exists) {
-                profileModal.classList.add('hidden'); 
-            } else {
-                document.getElementById('profilePhotoUrl').value = user.photoURL || "";
-                profileModal.classList.remove('hidden'); 
-            }
+            switchView('myprofile');
+            if (!doc.exists) openHubEditingState();
         });
 }
 
-profileForm.addEventListener('submit', (e) => {
+function openHubEditingState() {
+    profileHubStaticView.classList.add('hidden');
+    profileHubForm.classList.remove('hidden');
+    toggleEditHubBtn.innerHTML = `<i data-lucide="eye" class="w-3.5 h-3.5"></i> <span>Viewing</span>`;
+    lucide.createIcons();
+}
+
+function closeHubEditingState() {
+    profileHubForm.classList.add('hidden');
+    profileHubStaticView.classList.remove('hidden');
+    toggleEditHubBtn.innerHTML = `<i data-lucide="settings" class="w-3.5 h-3.5"></i> <span>Edit Details</span>`;
+    lucide.createIcons();
+}
+
+toggleEditHubBtn.addEventListener('click', () => {
+    if (profileHubForm.classList.contains('hidden')) {
+        openHubEditingState();
+    } else {
+        closeHubEditingState();
+    }
+});
+
+cancelHubEditBtn.addEventListener('click', closeHubEditingState);
+
+profileHubForm.addEventListener('submit', (e) => {
     e.preventDefault(); 
     const currentUser = auth.currentUser;
     if (!currentUser) return;
@@ -218,138 +312,233 @@ profileForm.addEventListener('submit', (e) => {
         uid: currentUser.uid,
         fullName: currentUser.displayName,
         email: currentUser.email,
-        photoUrl: document.getElementById('profilePhotoUrl').value || currentUser.photoURL || "",
-        collegeName: document.getElementById('profileCollege').value,
-        major: document.getElementById('profileMajor').value,
-        bio: document.getElementById('profileBio').value,
-        skills: document.getElementById('profileSkills').value,
-        linkedin: document.getElementById('profileLinkedInLink').value,
-        github: document.getElementById('profileGitHubLink').value,
+        photoUrl: hubPhotoUrl.value.trim() || currentUser.photoURL || "",
+        collegeName: hubCollege.value.trim(),
+        major: hubMajor.value.trim(),
+        bio: hubBio.value.trim(),
+        skills: hubSkills.value.trim(),
+        linkedin: hubLinkedIn.value.trim(),
+        github: hubGitHub.value.trim(),
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true }).then(() => profileModal.classList.add('hidden'));
+    }, { merge: true }).then(() => {
+        closeHubEditingState();
+    });
 });
 
-// Auth Listener States
-auth.onAuthStateChanged(user => {
-    if (user) {
-        signInBtn.innerText = `Hey, ${user.displayName.split(' ')[0]}`;
-        signInBtn.classList.replace('bg-blue-600', 'bg-emerald-600');
-        signOutBtn.classList.remove('hidden');
-        openMarketModalBtn.classList.remove('hidden');
-        communityPostBox.classList.remove('hidden'); 
-        
-        // Only display profile box if user is currently looking at non-home tabs
-        if (!viewHome.classList.contains('hidden')) {
-            myProfileSection.classList.add('hidden');
-        } else {
-            myProfileSection.classList.remove('hidden');
-        }
-        
-        renderMyShowcaseDashboard(user.uid);
-    } else {
-        signInBtn.innerText = "Sign In";
-        signInBtn.classList.replace('bg-emerald-600', 'bg-blue-600');
-        signOutBtn.classList.add('hidden');
-        openMarketModalBtn.classList.add('hidden');
-        communityPostBox.classList.add('hidden'); 
-        myProfileSection.classList.add('hidden');
-        profileModal.classList.add('hidden');
-        marketModal.classList.add('hidden');
-    }
-    listenToMarketplace();
-    listenToCommunityHub();
-});
-
-// --- REAL-TIME DATASTREAMS & SYSTEM HOOKS ---
-
-// 1. STUDENT NETWORK STREAM
+// --- ROSTER DIRECTORY ---
 function listenToStudentNetwork() {
     db.collection('users').orderBy('createdAt', 'desc')
         .onSnapshot(snapshot => {
-            networkGrid.innerHTML = "";
+            allStudentsCache = []; 
             studentCounter.innerText = `${snapshot.size} Homies Active`;
             if (snapshot.empty) return;
+            snapshot.forEach(doc => { allStudentsCache.push(doc.data()); });
+            renderFilteredNetwork(allStudentsCache);
+        });
+}
+
+function renderFilteredNetwork(studentsArray) {
+    networkGrid.innerHTML = "";
+    if (studentsArray.length === 0) {
+        networkGrid.innerHTML = `<div class="col-span-full text-center py-12 bg-white rounded-2xl border border-slate-200 p-6"><p class="text-slate-400 text-xs font-semibold">No students found matching query configuration parameters.</p></div>`;
+        return;
+    }
+
+    studentsArray.forEach(student => {
+        const studentCard = document.createElement('div');
+        studentCard.className = "bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between h-full";
+        let avatarLayout = student.photoUrl ? `<img src="${student.photoUrl}" class="w-10 h-10 rounded-full object-cover shadow-sm">` : `<div class="w-10 h-10 rounded-full ${getAvatarColorClass(student.fullName)} text-white font-bold flex items-center justify-center text-sm uppercase shadow-sm">${student.fullName ? student.fullName.charAt(0) : 'H'}</div>`;
+
+        let skillsChips = "";
+        if(student.skills) {
+            student.skills.split(',').forEach(sk => {
+                if(!sk.trim()) return;
+                skillsChips += `<span class="bg-slate-100 text-slate-700 text-[9px] font-bold px-2 py-0.5 rounded-md">${sk.trim()}</span>`;
+            });
+        }
+
+        studentCard.innerHTML = `
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    ${avatarLayout}
+                    <div>
+                        <h4 class="font-extrabold text-slate-900 text-sm tracking-tight leading-tight">${student.fullName || 'Anonymous Homie'}</h4>
+                        <p class="text-[11px] text-blue-600 font-semibold">${student.major || 'Undecided'}</p>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 font-medium mb-2 flex items-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400"></i> ${student.collegeName || 'Global Campus'}</p>
+                <p class="text-xs text-slate-600 line-clamp-2 italic mb-4 bg-slate-50 p-2.5 rounded-xl border border-slate-100">"${student.bio || 'Hello, lets connect!'}"</p>
+                <div class="space-y-1">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Skills Inventory:</span>
+                    <div class="flex flex-wrap gap-1">${skillsChips || '<span class="text-slate-400 text-xs">Exploring...</span>'}</div>
+                </div>
+            </div>
+            <div class="mt-5 pt-3 border-t border-slate-100 flex gap-2">
+                <a href="mailto:${student.email}" class="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs py-2 rounded-xl transition text-center flex items-center justify-center gap-1.5"><i data-lucide="mail" class="w-3.5 h-3.5"></i> Email</a>
+            </div>
+        `;
+        networkGrid.appendChild(studentCard);
+    });
+    lucide.createIcons();
+}
+
+document.getElementById('networkSearchInput').addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    if (!query) { renderFilteredNetwork(allStudentsCache); return; }
+    const filtered = allStudentsCache.filter(student => {
+        return (student.fullName || "").toLowerCase().includes(query) || 
+               (student.major || "").toLowerCase().includes(query) || 
+               (student.collegeName || "").toLowerCase().includes(query) || 
+               (student.skills || "").toLowerCase().includes(query);
+    });
+    renderFilteredNetwork(filtered);
+});
+
+// --- MESSAGING CHANNEL MECHANICS ---
+window.openMarketplaceChat = function(sellerUid, sellerName, listingTitle) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return alert("Sign in to contact sellers!");
+    if (currentUser.uid === sellerUid) return alert("Your listing!");
+
+    const combinedChatId = `${currentUser.uid}_${sellerUid}_${listingTitle.replace(/\s+/g, '')}`;
+
+    db.collection('chats').doc(combinedChatId).set({
+        chatId: combinedChatId,
+        participants: [currentUser.uid, sellerUid],
+        buyerName: currentUser.displayName,
+        sellerName: sellerName,
+        listingTitle: listingTitle,
+        lastMessage: "Conversation opened...",
+        lastUpdated: Date.now()
+    }, { merge: true }).then(() => {
+        switchView('messages');
+        loadActiveChatMessageStream(combinedChatId, sellerName, listingTitle);
+    });
+};
+
+function listenToUserInboxChats() {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    db.collection('chats')
+        .where('participants', 'array-contains', currentUser.uid)
+        .onSnapshot(snapshot => {
+            chatSidebarList.innerHTML = "";
+            if (snapshot.empty) {
+                chatSidebarList.innerHTML = `<p class="text-center text-xs text-slate-400 py-12 italic">No active message pipelines linked.</p>`;
+                return;
+            }
 
             snapshot.forEach(doc => {
-                const student = doc.data();
-                const studentCard = document.createElement('div');
-                studentCard.className = "bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between";
+                const chat = doc.data();
+                const isBuyer = currentUser.uid === chat.participants[0];
+                const displayPeerName = isBuyer ? chat.sellerName : chat.buyerName;
+                const activeBarIndicator = activeChatId === chat.chatId ? 'bg-slate-50 font-bold border-l-4 border-slate-900' : '';
                 
-                let avatarLayout = student.photoUrl ? `<img src="${student.photoUrl}" class="w-10 h-10 rounded-full object-cover shadow-sm">` : `<div class="w-10 h-10 rounded-full ${getAvatarColorClass(student.fullName)} text-white font-bold flex items-center justify-center text-sm uppercase shadow-sm">${student.fullName ? student.fullName.charAt(0) : 'H'}</div>`;
-
-                let skillsChips = "";
-                if(student.skills) {
-                    student.skills.split(',').forEach(sk => {
-                        if(!sk.trim()) return;
-                        skillsChips += `<span class="bg-slate-100 text-slate-700 text-[9px] font-medium px-2 py-0.5 rounded">${sk.trim()}</span>`;
-                    });
-                }
-
-                studentCard.innerHTML = `
-                    <div>
-                        <div class="flex items-center gap-3 mb-3">
-                            ${avatarLayout}
-                            <div>
-                                <h4 class="font-bold text-slate-900 leading-tight">${student.fullName || 'Anonymous Homie'}</h4>
-                                <p class="text-[11px] text-blue-600 font-medium">${student.major || 'Undecided'}</p>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-500 font-medium mb-2">📍 ${student.collegeName || 'Global Campus'}</p>
-                        <p class="text-xs text-slate-600 line-clamp-2 italic mb-4 bg-slate-50 p-2 rounded border border-slate-100">"${student.bio || 'Hello, lets connect!'}"</p>
-                        <div class="space-y-1">
-                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Skills Inventory:</span>
-                            <div class="flex flex-wrap gap-1">${skillsChips || '<span class="text-slate-400 text-xs">Exploring...</span>'}</div>
-                        </div>
+                const sidebarItemRow = document.createElement('button');
+                sidebarItemRow.className = `w-full text-left px-5 py-3.5 hover:bg-slate-50/80 transition flex items-center gap-3 outline-none ${activeBarIndicator}`;
+                
+                sidebarItemRow.innerHTML = `
+                    <div class="w-11 h-11 rounded-full ${getAvatarColorClass(displayPeerName)} text-white font-extrabold text-sm flex items-center justify-center uppercase shadow-sm">
+                        ${displayPeerName.charAt(0)}
                     </div>
-                    <div class="mt-5 pt-3 border-t border-slate-100 flex gap-2">
-                        <a href="mailto:${student.email}" class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs py-2 rounded-md transition text-center">📩 Email</a>
-                        ${student.linkedin ? `<a href="${student.linkedin}" target="_blank" class="px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md flex items-center justify-center text-xs transition">🔗</a>` : ""}
-                        ${student.github ? `<a href="${student.github}" target="_blank" class="px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md flex items-center justify-center text-xs transition">💻</a>` : ""}
+                    <div class="flex-1 min-w-0">
+                        <span class="text-slate-900 text-sm font-semibold block truncate">${displayPeerName}</span>
+                        <p class="text-xs text-slate-400 truncate mt-0.5">${chat.lastMessage || 'Sent a message'}</p>
+                        <span class="text-[9px] bg-slate-100 text-slate-500 font-bold tracking-tight px-1.5 py-0.5 rounded mt-1 inline-block">🏷️ ${chat.listingTitle}</span>
                     </div>
                 `;
-                networkGrid.appendChild(studentCard);
+                
+                sidebarItemRow.addEventListener('click', () => {
+                    loadActiveChatMessageStream(chat.chatId, displayPeerName, chat.listingTitle);
+                });
+                chatSidebarList.appendChild(sidebarItemRow);
             });
         });
 }
 
-// 2. COMMUNITY HUB STREAM (REWRITTEN WITH LIKES & COMMENTS ENGINE)
+function loadActiveChatMessageStream(chatId, peerName, listingTitle) {
+    activeChatId = chatId;
+    
+    chatFallbackPlaceholder.classList.add('hidden');
+    chatWindowHeader.classList.remove('hidden');
+    chatFormInputBar.classList.remove('hidden');
+    
+    chatHeaderName.innerText = peerName;
+    chatHeaderItem.innerText = `Marketplace Post: ${listingTitle}`;
+    chatHeaderAvatar.className = `w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white uppercase tracking-wider ${getAvatarColorClass(peerName)}`;
+    chatHeaderAvatar.innerText = peerName.charAt(0);
+
+    if(chatMessagesUnsubscribe) chatMessagesUnsubscribe();
+
+    chatMessagesUnsubscribe = db.collection('chats').doc(chatId).collection('messages')
+        .orderBy('timestamp', 'asc')
+        .onSnapshot(snapshot => {
+            chatMessageStream.innerHTML = "";
+            const currentUid = auth.currentUser ? auth.currentUser.uid : null;
+
+            snapshot.forEach(doc => {
+                const msg = doc.data();
+                const isMe = msg.senderUid === currentUid;
+                const messageRowWrapper = document.createElement('div');
+                messageRowWrapper.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'}`;
+
+                messageRowWrapper.innerHTML = `
+                    <div class="max-w-[70%] rounded-2xl px-4 py-2.5 text-xs transition tracking-tight ${isMe ? 'bg-blue-600 text-white rounded-br-sm font-semibold shadow-sm' : 'bg-slate-100 text-slate-800 rounded-bl-sm font-normal'}">
+                        <p class="whitespace-pre-wrap leading-snug">${msg.text}</p>
+                    </div>
+                `;
+                chatMessageStream.appendChild(messageRowWrapper);
+            });
+            chatMessageStream.scrollTop = chatMessageStream.scrollHeight;
+        });
+    lucide.createIcons();
+}
+
+chatFormInputBar.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const currentUser = auth.currentUser;
+    const messageText = chatInputField.value.trim();
+    if (!currentUser || !messageText || !activeChatId) return;
+
+    const messagesRef = db.collection('chats').doc(activeChatId).collection('messages');
+    const globalChatRef = db.collection('chats').doc(activeChatId);
+
+    const messagePayload = {
+        senderUid: currentUser.uid,
+        senderName: currentUser.displayName.split(' ')[0],
+        text: messageText,
+        timestamp: Date.now()
+    };
+
+    messagesRef.add(messagePayload).then(() => {
+        chatInputField.value = ""; 
+        globalChatRef.update({ lastMessage: messageText, lastUpdated: Date.now() });
+    });
+});
+
+// --- DISCUSSIONS ARCHITECTURE ---
 function listenToCommunityHub() {
     db.collection('forum').orderBy('createdAt', 'desc')
         .onSnapshot(snapshot => {
             communityGrid.innerHTML = "";
-            if (snapshot.empty) {
-                communityGrid.innerHTML = `<div class="col-span-full text-center py-12 bg-white rounded-xl border border-slate-200 p-6"><p class="text-slate-500 text-sm font-medium">No community posts yet. Be the first to share something!</p></div>`;
-                return;
-            }
+            if (snapshot.empty) return;
             const currentUid = auth.currentUser ? auth.currentUser.uid : null;
 
             snapshot.forEach(doc => {
-                const post = doc.data();
-                const postId = doc.id;
-                
-                const upvotesArray = post.upvotes || [];
-                const commentsArray = post.comments || [];
-                const upvoteCount = upvotesArray.length;
+                const post = doc.data(); const postId = doc.id;
+                const upvotesArray = post.upvotes || []; const commentsArray = post.comments || [];
                 const hasUpvoted = currentUid ? upvotesArray.includes(currentUid) : false;
 
                 const postCard = document.createElement('div');
-                postCard.className = "bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4 h-full";
-
+                postCard.className = "bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4 h-full";
                 const isOwner = currentUid === post.authorUid;
                 const displayName = post.isAnonymous ? "Anonymous Homie" : (post.authorName || "Homie");
-                let postAvatar = post.isAnonymous ? `<div class="w-9 h-9 rounded-full bg-slate-700 text-white flex items-center justify-center text-base">👤</div>` : `<div class="w-9 h-9 rounded-full ${getAvatarColorClass(displayName)} text-white font-bold flex items-center justify-center text-sm uppercase">${displayName.charAt(0)}</div>`;
+                let postAvatar = post.isAnonymous ? `<div class="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold"><i data-lucide="eye-off" class="w-4 h-4"></i></div>` : `<div class="w-9 h-9 rounded-full ${getAvatarColorClass(displayName)} text-white font-bold flex items-center justify-center text-xs uppercase shadow-sm">${displayName.charAt(0)}</div>`;
 
                 let commentsHtml = "";
                 commentsArray.forEach(cmt => {
-                    commentsHtml += `
-                        <div class="bg-slate-50 rounded-lg p-2.5 text-xs border border-slate-100">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-bold text-slate-800">${cmt.authorName}</span>
-                                <span class="text-[9px] text-slate-400">Student</span>
-                            </div>
-                            <p class="text-slate-600">${cmt.content}</p>
-                        </div>
-                    `;
+                    commentsHtml += `<div class="bg-slate-50 rounded-xl p-3 text-xs border border-slate-100"><span class="font-bold text-slate-800 block mb-0.5">${cmt.authorName}</span><p class="text-slate-600 leading-relaxed">${cmt.content}</p></div>`;
                 });
 
                 postCard.innerHTML = `
@@ -357,184 +546,93 @@ function listenToCommunityHub() {
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-3">
                                 ${postAvatar}
-                                <div>
-                                    <h4 class="font-bold text-slate-900 text-sm leading-tight">${displayName}</h4>
-                                    <p class="text-[10px] text-slate-400 font-medium">Student Post</p>
-                                </div>
+                                <div><h4 class="font-extrabold text-slate-900 text-xs tracking-tight leading-tight">${displayName}</h4></div>
                             </div>
-                            <div class="flex items-center gap-2">
-                                ${post.isAnonymous ? `<span class="bg-slate-100 text-slate-700 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded">Incognito</span>` : ""}
-                                ${isOwner ? `<button onclick="deleteForumPost('${postId}')" class="text-slate-300 hover:text-red-500 transition text-sm">🗑️</button>` : ""}
-                            </div>
+                            ${isOwner ? `<button onclick="deleteForumPost('${postId}')" class="text-slate-300 hover:text-red-500 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
                         </div>
-                        
-                        <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
-                            ${post.content}
-                        </p>
+                        <p class="text-xs text-slate-600 leading-relaxed font-medium">${post.content}</p>
                     </div>
-
                     <div class="pt-3 border-t border-slate-100 space-y-4">
                         <div class="flex items-center gap-4 text-xs">
-                            <button onclick="toggleUpvote('${postId}', '${hasUpvoted}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${hasUpvoted ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-transparent'}">
-                                🔺 <span>${upvoteCount}</span>
-                            </button>
-                            
-                            <button onclick="document.getElementById('commentThread-${postId}').classList.toggle('hidden')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold transition">
-                                💬 <span>${commentsArray.length} Comments</span>
-                            </button>
+                            <button onclick="toggleUpvote('${postId}', '${hasUpvoted}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition ${hasUpvoted ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}"><i data-lucide="thumbs-up" class="w-3.5 h-3.5"></i> <span>${upvotesArray.length}</span></button>
+                            <button onclick="document.getElementById('commentThread-${postId}').classList.toggle('hidden')" class="bg-slate-50 text-slate-600 hover:bg-slate-100 font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5"><i data-lucide="message-square" class="w-3.5 h-3.5"></i> ${commentsArray.length} Replies</button>
                         </div>
-
-                        <div id="commentThread-${postId}" class="hidden space-y-3 pt-2 border-t border-slate-100">
-                            <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                                ${commentsHtml || '<p class="text-[11px] text-slate-400 italic text-center py-2">No comments yet. Start the conversation!</p>'}
-                            </div>
-
-                            ${currentUid ? `
-                                <div class="flex gap-2 pt-1">
-                                    <input type="text" id="commentInput-${postId}" placeholder="Write a reply to your homie..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-blue-600 focus:bg-white transition">
-                                    <button onclick="submitComment('${postId}')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition shadow-sm">
-                                        Reply
-                                    </button>
-                                </div>
-                            ` : `<p class="text-[10px] text-slate-400 text-center italic bg-slate-50 p-2 rounded-lg">Sign in to leave a reply on this post.</p>`}
+                        <div id="commentThread-${postId}" class="hidden space-y-3 pt-2">
+                            <div class="space-y-2 max-h-48 overflow-y-auto">${commentsHtml || '<p class="text-[11px] text-slate-400 text-center italic py-2">No response context logged.</p>'}</div>
+                            <div class="flex gap-2"><input type="text" id="commentInput-${postId}" placeholder="Write a reply..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-300 focus:bg-white transition"><button onclick="submitComment('${postId}')" class="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Reply</button></div>
                         </div>
                     </div>
                 `;
                 communityGrid.appendChild(postCard);
             });
+            lucide.createIcons();
         });
 }
 
-// Global Atomical Upvote Controller 
 window.toggleUpvote = function(postId, userHasUpvotedString) {
-    const user = auth.currentUser;
-    if (!user) {
-        alert("Please sign in first to upvote posts!");
-        return;
-    }
-
+    const user = auth.currentUser; if (!user) return alert("Sign in first!");
     const postRef = db.collection('forum').doc(postId);
-    const isUpvoted = userHasUpvotedString === "true";
-
-    if (isUpvoted) {
-        postRef.update({
-            upvotes: firebase.firestore.FieldValue.arrayRemove(user.uid)
-        });
-    } else {
-        postRef.update({
-            upvotes: firebase.firestore.FieldValue.arrayUnion(user.uid)
-        });
-    }
+    if (userHasUpvotedString === "true") { postRef.update({ upvotes: firebase.firestore.FieldValue.arrayRemove(user.uid) }); }
+    else { postRef.update({ upvotes: firebase.firestore.FieldValue.arrayUnion(user.uid) }); }
 };
 
-// Global Atomical Comment Thread Submission Controller
 window.submitComment = function(postId) {
-    const user = auth.currentUser;
-    const inputElement = document.getElementById(`commentInput-${postId}`);
-    const textValue = inputElement.value.trim();
-
-    if (!user || !textValue) return;
-
-    const postRef = db.collection('forum').doc(postId);
-
-    postRef.update({
-        comments: firebase.firestore.FieldValue.arrayUnion({
-            authorUid: user.uid,
-            authorName: user.displayName.split(' ')[0], 
-            content: textValue,
-            createdAt: Date.now()
-        })
-    }).then(() => {
-        inputElement.value = ""; 
-    }).catch(err => console.error("Error committing comment update: ", err));
+    const user = auth.currentUser; const input = document.getElementById(`commentInput-${postId}`);
+    if (!user || !input.value.trim()) return;
+    db.collection('forum').doc(postId).update({
+        comments: firebase.firestore.FieldValue.arrayUnion({ authorUid: user.uid, authorName: user.displayName.split(' ')[0], content: input.value.trim(), createdAt: Date.now() })
+    }).then(() => input.value = "");
 };
 
-// Forum Post Form Submission Handler
 communityForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const currentUser = auth.currentUser;
-    if (!currentUser) return;
-    
-    db.collection('forum').add({
-        authorUid: currentUser.uid,
-        authorName: currentUser.displayName,
-        content: document.getElementById('postContent').value,
-        isAnonymous: document.getElementById('postAnonymous').checked,
-        upvotes: [], 
-        comments: [], 
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => communityForm.reset());
+    e.preventDefault(); const currentUser = auth.currentUser; if (!currentUser) return;
+    db.collection('forum').add({ authorUid: currentUser.uid, authorName: currentUser.displayName, content: document.getElementById('postContent').value, isAnonymous: document.getElementById('postAnonymous').checked, upvotes: [], comments: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(() => communityForm.reset());
 });
 
-window.deleteForumPost = function(postId) {
-    if (!confirm("Delete this post permanently?")) return;
-    db.collection('forum').doc(postId).delete();
-};
+window.deleteForumPost = function(postId) { if (confirm("Delete post?")) db.collection('forum').doc(postId).delete(); };
 
-
-// 3. MARKETPLACE FEED STREAM
+// --- MARKETPLACE ENGINE ---
 marketForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const currentUser = auth.currentUser;
-    if (!currentUser) return;
-    db.collection('listings').add({
-        sellerUid: currentUser.uid,
-        sellerName: currentUser.displayName,
-        sellerEmail: currentUser.email,
-        title: document.getElementById('itemTitle').value,
-        category: document.getElementById('itemCategory').value,
-        price: document.getElementById('itemPrice').value,
-        description: document.getElementById('itemDescription').value,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-        marketForm.reset(); 
-        marketModal.classList.add('hidden'); 
-    });
+    e.preventDefault(); const currentUser = auth.currentUser; if (!currentUser) return;
+    db.collection('listings').add({ sellerUid: currentUser.uid, sellerName: currentUser.displayName, sellerEmail: currentUser.email, title: document.getElementById('itemTitle').value, category: document.getElementById('itemCategory').value, price: document.getElementById('itemPrice').value, description: document.getElementById('itemDescription').value, createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(() => { marketForm.reset(); marketModal.classList.add('hidden'); });
 });
 
 function listenToMarketplace() {
     db.collection('listings').orderBy('createdAt', 'desc')
         .onSnapshot(snapshot => {
             marketplaceGrid.innerHTML = "";
-            if (snapshot.empty) {
-                marketplaceGrid.innerHTML = `<div class="col-span-full text-center py-12 bg-white rounded-xl border border-slate-200 p-6"><p class="text-slate-500 text-sm font-medium">No marketplace listings available right now.</p></div>`;
-                return;
-            }
+            if (snapshot.empty) return;
             const currentUid = auth.currentUser ? auth.currentUser.uid : null;
 
             snapshot.forEach(doc => {
-                const item = doc.data();
-                const listingId = doc.id; 
-                const itemCard = document.createElement('div');
-                itemCard.className = "bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between";
+                const item = doc.data(); const listingId = doc.id;
                 const isOwner = currentUid === item.sellerUid;
-                const badgeStyle = getCategoryBadgeStyle(item.category);
+                const itemCard = document.createElement('div');
+                itemCard.className = "bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between";
 
                 itemCard.innerHTML = `
                     <div>
                         <div class="flex justify-between items-center mb-3">
-                            <span class="${badgeStyle} text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md">${item.category}</span>
-                            <span class="text-sm font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">${item.price}</span>
+                            <span class="${getCategoryBadgeStyle(item.category)} text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md">${item.category}</span>
+                            <span class="text-xs font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">${item.price}</span>
                         </div>
-                        <h4 class="font-bold text-slate-900 text-base mb-1.5 leading-snug">${item.title}</h4>
-                        <p class="text-xs text-slate-600 line-clamp-3 mb-4 bg-slate-50 border border-slate-100 p-2 rounded-lg italic">"${item.description}"</p>
+                        <h4 class="font-extrabold text-slate-900 text-sm mb-1.5 leading-snug tracking-tight">${item.title}</h4>
+                        <p class="text-xs text-slate-500 line-clamp-3 mb-4 bg-slate-50 border border-slate-100 p-2.5 rounded-xl italic">"${item.description}"</p>
                     </div>
                     <div class="pt-3 border-t border-slate-100 flex items-center justify-between mt-auto gap-2">
-                        <div class="text-[11px] text-slate-400">By: <span class="font-medium text-slate-600">${item.sellerName ? item.sellerName.split(' ')[0] : 'Homie'}</span></div>
+                        <div class="text-[11px] text-slate-400">By: <span class="font-semibold text-slate-600">${item.sellerName ? item.sellerName.split(' ')[0] : 'Homie'}</span></div>
                         <div class="flex items-center gap-2">
-                            ${isOwner ? `<button onclick="deleteListing('${listingId}')" class="bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-[11px] px-3 py-1.5 rounded transition">🗑️ Delete</button>` : `<a href="mailto:${item.sellerEmail}?subject=Homies%20Marketplace:%20${encodeURIComponent(item.title)}" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px] px-3 py-1.5 rounded transition">Contact Seller</a>`}
+                            ${isOwner ? `<button onclick="deleteListing('${listingId}')" class="bg-red-50 text-red-600 hover:bg-red-100 font-bold text-[11px] px-3 py-2 rounded-xl transition flex items-center gap-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete</button>` : `<button onclick="window.openMarketplaceChat('${item.sellerUid}', '${item.sellerName}', '${item.title.replace(/'/g, "\\'")}')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] px-3 py-2 rounded-xl shadow-sm transition flex items-center gap-1"><i data-lucide="message-square" class="w-3.5 h-3.5"></i> Chat</button>`}
                         </div>
                     </div>
                 `;
                 marketplaceGrid.appendChild(itemCard);
             });
+            lucide.createIcons();
         });
 }
 
-window.deleteListing = function(listingId) {
-    if (!confirm("Are you sure?")) return;
-    db.collection('listings').doc(listingId).delete();
-};
+window.deleteListing = function(id) { if (confirm("Delete listing?")) db.collection('listings').doc(id).delete(); };
 
-// Core Execution Hook
+// Initialize System Engine
 listenToStudentNetwork();

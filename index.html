@@ -6,110 +6,96 @@
     <title>Homies - Your Student Network</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 font-sans text-slate-800">
+<body class="bg-slate-50 font-sans text-slate-800 antialiased">
 
-    <nav class="bg-blue-950 text-white px-6 py-4 flex justify-between items-center shadow-md sticky top-0 z-40">
-        <div class="text-2xl font-bold tracking-wide cursor-pointer" id="navLogo">HOMIES<span class="text-blue-400">.</span></div>
+    <nav class="bg-blue-950 text-white px-6 py-4 flex justify-between items-center shadow-sm sticky top-0 z-40">
+        <div class="text-xl font-black tracking-wider cursor-pointer flex items-center gap-2" id="navLogo">
+            <i data-lucide="layers" class="w-6 h-6 text-blue-400"></i>
+            <span>HOMIES<span class="text-blue-400">.</span></span>
+        </div>
         
-        <div class="space-x-6 hidden md:flex text-sm font-medium">
-            <button id="navHome" class="text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 focus:outline-none">Home</button>
-            <button id="navNetwork" class="text-slate-300 hover:text-white transition pb-1 focus:outline-none">Network</button>
-            <button id="navCommunity" class="text-slate-300 hover:text-white transition pb-1 focus:outline-none">Community Hub</button>
-            <button id="navMarketplace" class="text-slate-300 hover:text-white transition pb-1 focus:outline-none">Marketplace</button>
+        <div class="space-x-6 hidden md:flex text-xs font-semibold uppercase tracking-wider items-center">
+            <button id="navHome" class="text-blue-400 transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none"><i data-lucide="home" class="w-4 h-4"></i> Home</button>
+            <button id="navNetwork" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none"><i data-lucide="users" class="w-4 h-4"></i> Network</button>
+            <button id="navCommunity" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none"><i data-lucide="message-square" class="w-4 h-4"></i> Feed</button>
+            <button id="navMarketplace" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none"><i data-lucide="shopping-bag" class="w-4 h-4"></i> Market</button>
+            <button id="navMessages" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none hidden"><i data-lucide="send" class="w-4 h-4"></i> Chat</button>
+            <button id="navMyProfile" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none hidden"><i data-lucide="user" class="w-4 h-4"></i> Profile</button>
         </div>
         
         <div class="flex items-center gap-3">
-            <button id="signInBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2 rounded-md transition text-sm">
+            <button id="signInBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl transition text-xs uppercase tracking-wide shadow-md shadow-blue-600/10">
                 Sign In
             </button>
-            <button id="signOutBtn" class="bg-slate-700 hover:bg-slate-600 text-white font-medium px-4 py-2 rounded-md transition text-sm hidden">
-                Sign Out
+            <button id="signOutBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2.5 rounded-xl transition text-xs uppercase tracking-wide hidden">
+                Log Out
             </button>
         </div>
     </nav>
 
     <main class="max-w-6xl mx-auto px-6 py-12 space-y-12">
 
-        <section id="viewHome" class="flex flex-col items-center justify-center text-center py-20 space-y-8 animate-fade-in">
+        <section id="viewHome" class="flex flex-col items-center justify-center text-center py-20 space-y-8">
             <div class="max-w-3xl mx-auto space-y-6">
-                <span class="bg-blue-100 text-blue-800 text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-sm">
+                <span class="bg-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-sm">
                     Global Campus Directory
                 </span>
                 <h1 class="text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight">
                     For the Students, <br class="hidden sm:inline">
                     <span class="text-blue-600">by the Students.</span>
                 </h1>
-                <p class="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-                    Welcome to Homies. Discover an exclusive ecosystem built to trade skills, buy or sell textbooks, share updates anonymously, and unlock your network.
+                <p class="text-base md:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
+                    Discover an exclusive campus ecosystem built to trade skills, purchase text resources, share insights anonymously, and map out your network.
                 </p>
             </div>
             
-            <div class="flex flex-col sm:flex-row gap-4 items-center justify-center pt-4 w-full max-w-md">
-                <button id="homeExploreBtn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg hover:shadow-blue-500/20 transition-all text-base transform hover:-translate-y-0.5">
-                    Explore the Network 🚀
+            <div class="pt-4 w-full flex justify-center">
+                <button id="homeExploreBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-blue-600/20 transition-all text-sm uppercase tracking-wide flex items-center gap-2 group">
+                    Explore the Network 
+                    <i data-lucide="arrow-right" class="w-4 h-4 transition-transform group-hover:translate-x-1"></i>
                 </button>
             </div>
         </section>
 
-        <section id="myProfileSection" class="hidden">
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="h-32 bg-gradient-to-r from-blue-600 to-indigo-700"></div>
-                <div class="p-6 relative pt-0">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end -mt-16 mb-4 gap-4">
-                        <div id="myProfileAvatarBox" class="w-28 h-28 rounded-full border-4 border-white bg-slate-200 shadow-md overflow-hidden flex items-center justify-center text-3xl font-bold text-white uppercase"></div>
-                        <button id="editProfileBtn" class="border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-4 py-2 rounded-lg transition shadow-sm">
-                            ✏️ Edit Showcase Profile
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-                        <div class="md:col-span-2 space-y-2">
-                            <h2 id="myProfileName" class="text-2xl font-extrabold text-slate-900">Loading Name...</h2>
-                            <p id="myProfileHeadline" class="text-sm font-semibold text-blue-600">Loading Major & School...</p>
-                            <p id="myProfileBio" class="text-sm text-slate-600 leading-relaxed italic">"No bio added yet. Click edit profile to tell your homies about your goals!"</p>
-                        </div>
-                        <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl space-y-3">
-                            <div>
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Skills Portfolio:</span>
-                                <div id="myProfileSkillsTags" class="flex flex-wrap gap-1.5"></div>
-                            </div>
-                            <div class="pt-2 border-t border-slate-200 flex gap-3 text-xs text-blue-600 font-medium">
-                                <a id="myProfileLinkedIn" href="#" target="_blank" class="hover:underline hidden">🔗 LinkedIn Profile</a>
-                                <a id="myProfileGitHub" href="#" target="_blank" class="hover:underline hidden">💻 GitHub Portfolio</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <section id="viewNetwork" class="space-y-8 hidden">
-            <div class="flex justify-between items-center">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 class="text-2xl font-bold text-blue-950 tracking-tight">Explore the Student Network</h2>
-                    <p class="text-sm text-slate-500 mt-1">Connect with other homies, trade skills, and collaborate.</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Connect with other homies, inventory skills, and build collaborations.</p>
                 </div>
-                <span id="studentCounter" class="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">Loading network...</span>
+                <div class="flex items-center gap-3 self-start md:self-auto">
+                    <span id="studentCounter" class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-xl whitespace-nowrap">Loading network...</span>
+                </div>
             </div>
+
+            <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center">
+                <div class="relative flex-1">
+                    <span class="absolute inset-y-0 left-3 flex items-center text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="networkSearchInput" placeholder="Search homies by name, major, university, or skills (e.g., Python, Design)..." class="w-full bg-slate-50 border border-slate-100 rounded-xl pl-10 pr-4 py-2.5 text-xs focus:outline-none focus:border-slate-300 focus:bg-white transition">
+                </div>
+            </div>
+
             <div id="networkGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
         <section id="viewCommunity" class="space-y-8 hidden">
             <div>
-                <h2 class="text-2xl font-bold text-blue-950 tracking-tight">Community Hub</h2>
-                <p class="text-sm text-slate-500 mt-1">Share thoughts, ask questions, or post announcements anonymously or publicly.</p>
+                <h2 class="text-2xl font-bold text-blue-950 tracking-tight">Community Feed</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Share architectural thoughts, ask questions, or post announcements anonymously.</p>
             </div>
 
-            <div id="communityPostBox" class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hidden">
+            <div id="communityPostBox" class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hidden">
                 <form id="communityForm" class="space-y-4">
-                    <textarea id="postContent" placeholder="What's happening on campus? Ask anything..." rows="3" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600 bg-slate-50 focus:bg-white transition"></textarea>
+                    <textarea id="postContent" placeholder="What's happening on campus? Ask anything..." rows="3" required class="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-slate-300 bg-slate-50 focus:bg-white transition resize-none"></textarea>
                     <div class="flex items-center justify-between">
-                        <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer select-none">
+                        <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wide cursor-pointer select-none">
                             <input type="checkbox" id="postAnonymous" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4">
                             Post Anonymously
                         </label>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-md transition text-xs shadow">
-                            Share to Feed
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl transition text-xs uppercase tracking-wide shadow-md">
+                            Post Update
                         </button>
                     </div>
                 </form>
@@ -122,84 +108,225 @@
             <div class="flex justify-between items-center">
                 <div>
                     <h2 class="text-2xl font-bold text-blue-950 tracking-tight">Student Marketplace</h2>
-                    <p class="text-sm text-slate-500 mt-1">Find textbooks, housing, skill trades, or gigs from peers.</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Find textbooks, housing setups, skill trades, or gigs from peers.</p>
                 </div>
-                <button id="openMarketModalBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-md transition text-xs shadow hidden">
-                    + Post a Listing
+                <button id="openMarketModalBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2.5 rounded-xl transition text-xs uppercase tracking-wide shadow-md hidden flex items-center gap-1.5">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Post Item
                 </button>
             </div>
             <div id="marketplaceGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
+        <section id="viewMyProfile" class="hidden space-y-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                
+                <div class="lg:col-span-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden sticky top-24">
+                    <div class="h-28 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-700 relative">
+                        <span class="absolute top-3 right-3 bg-white/20 backdrop-blur-md text-white text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
+                            Live Preview
+                        </span>
+                    </div>
+                    <div class="p-6 relative pt-0 text-center -mt-14 space-y-4">
+                        <div id="myProfileAvatarBox" class="w-24 h-24 rounded-full border-4 border-white bg-slate-200 shadow-md overflow-hidden mx-auto flex items-center justify-center text-3xl font-bold text-white uppercase transition-all duration-300"></div>
+                        
+                        <div class="space-y-1">
+                            <h2 id="myProfileName" class="text-xl font-extrabold text-slate-900 tracking-tight">Loading Name...</h2>
+                            <p id="myProfileHeadline" class="text-xs font-semibold text-blue-600">Loading Major & School...</p>
+                        </div>
+                        
+                        <p id="myProfileBio" class="text-xs text-slate-500 leading-relaxed italic bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            "No bio added yet. Tell your homies about your goals!"
+                        </p>
+
+                        <div class="text-left space-y-2 pt-2 border-t border-slate-100">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Skills Portfolio</span>
+                            <div id="myProfileSkillsTags" class="flex flex-wrap gap-1.5"></div>
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-100 flex gap-4 text-xs text-blue-600 font-medium justify-center">
+                            <a id="myProfileLinkedIn" href="#" target="_blank" class="hover:underline hidden flex items-center gap-1">
+                                <i data-lucide="linkedin" class="w-3.5 h-3.5"></i> LinkedIn
+                            </a>
+                            <a id="myProfileGitHub" href="#" target="_blank" class="hover:underline hidden flex items-center gap-1">
+                                <i data-lucide="github" class="w-3.5 h-3.5"></i> GitHub
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+                    <div class="border-b border-slate-100 pb-4 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-extrabold text-slate-900 tracking-tight">Profile Settings</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Customize how you appear to other students across the campus platform.</p>
+                        </div>
+                        <button id="toggleEditHubBtn" class="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5">
+                            <i data-lucide="settings" class="w-3.5 h-3.5"></i> <span>Edit Details</span>
+                        </button>
+                    </div>
+
+                    <div id="profileHubStaticView" class="py-12 text-center space-y-4">
+                        <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+                            <i data-lucide="shield-check" class="w-6 h-6"></i>
+                        </div>
+                        <div class="max-w-sm mx-auto space-y-1">
+                            <h4 class="font-bold text-slate-900 text-sm">Your Card is Live on the Network</h4>
+                            <p class="text-xs text-slate-400 leading-relaxed">Other students can search your credentials in the network grid, verify skills arrays, and initiate conversations.</p>
+                        </div>
+                    </div>
+
+                    <form id="profileHubForm" class="hidden space-y-5">
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Custom Profile Picture URL</label>
+                            <input type="url" id="hubPhotoUrl" placeholder="Paste an image web link (Imgur, Unsplash, etc.)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-slate-300 focus:bg-white transition">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="space-y-1.5">
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">College / University</label>
+                                <input type="text" id="hubCollege" placeholder="e.g., Stanford University" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-slate-300 focus:bg-white transition">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Major / Course of Study</label>
+                                <input type="text" id="hubMajor" placeholder="e.g., Computer Science" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-slate-300 focus:bg-white transition">
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Short Bio & Headline</label>
+                            <input type="text" id="hubBio" placeholder="What are you working on? (e.g., UI Designer looking for a backend partner)" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-slate-300 focus:bg-white transition">
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Skills Inventory (Separate with commas)</label>
+                            <textarea id="hubSkills" rows="2" placeholder="Python, Figma, Technical Writing, Video Editing" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-slate-300 focus:bg-white transition resize-none"></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="space-y-1.5">
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">LinkedIn URL (Optional)</label>
+                                <input type="url" id="hubLinkedIn" placeholder="https://linkedin.com/in/username" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-slate-300 focus:bg-white transition">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">GitHub URL (Optional)</label>
+                                <input type="url" id="hubGitHub" placeholder="https://github.com/username" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-slate-300 focus:bg-white transition">
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 pt-3 border-t border-slate-100">
+                            <button type="button" id="cancelHubEditBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-5 py-3 rounded-xl transition">
+                                Cancel
+                            </button>
+                            <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-3 rounded-xl transition shadow-md">
+                                Save Profile Configurations
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="viewMessages" class="hidden">
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-3 h-[650px]">
+                
+                <div class="border-r border-slate-200 flex flex-col h-full bg-white">
+                    <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <h3 id="currentUserNameInbox" class="font-extrabold text-slate-900 text-base tracking-tight">Direct</h3>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                        </div>
+                        <i data-lucide="square-pen" class="w-4 h-4 text-slate-600 cursor-pointer hover:opacity-70"></i>
+                    </div>
+                    <div id="chatSidebarList" class="flex-1 overflow-y-auto pt-2 space-y-0.5"></div>
+                </div>
+
+                <div class="md:col-span-2 flex flex-col h-full bg-white relative">
+                    <div id="chatWindowHeader" class="p-4 border-b border-slate-100 flex items-center justify-between bg-white hidden">
+                        <div class="flex items-center gap-3">
+                            <div id="chatHeaderAvatar" class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white uppercase tracking-wider"></div>
+                            <div>
+                                <h4 id="chatHeaderName" class="font-bold text-slate-900 text-sm tracking-tight leading-tight">Select Chat</h4>
+                                <p id="chatHeaderItem" class="text-[10px] text-slate-400 font-semibold"></p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 text-slate-400 px-2">
+                            <i data-lucide="phone" class="w-4 h-4 cursor-pointer hover:text-slate-600 transition"></i>
+                            <i data-lucide="video" class="w-4 h-4 cursor-pointer hover:text-slate-600 transition"></i>
+                            <i data-lucide="info" class="w-4 h-4 cursor-pointer hover:text-slate-600 transition"></i>
+                        </div>
+                    </div>
+
+                    <div id="chatMessageStream" class="flex-1 p-6 overflow-y-auto space-y-4 bg-white flex flex-col">
+                        <div class="m-auto text-center space-y-3 max-w-sm" id="chatFallbackPlaceholder">
+                            <div class="w-14 h-14 rounded-2xl border border-slate-200 flex items-center justify-center mx-auto shadow-sm bg-slate-50 text-slate-400">
+                                <i data-lucide="message-circle" class="w-6 h-6"></i>
+                            </div>
+                            <h3 class="font-bold text-slate-900 text-base">Your Messages</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed px-4">Send private messages, log skill offers, or coordinate trading logs securely with verified campus accounts.</p>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-white border-t border-slate-100 relative">
+                        <div id="emojiPickerPanel" class="hidden absolute bottom-16 left-4 bg-white border border-slate-200 rounded-xl shadow-xl w-64 p-3 z-50">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Quick Emojis</p>
+                            <div class="grid grid-cols-6 gap-2 text-center text-lg select-none">
+                                <span class="emoji-opt cursor-pointer hover:bg-slate-100 p-1 rounded transition">👍</span>
+                                <span class="emoji-opt cursor-pointer hover:bg-slate-100 p-1 rounded transition">🔥</span>
+                                <span class="emoji-opt cursor-pointer hover:bg-slate-100 p-1 rounded transition">🙌</span>
+                                <span class="emoji-opt cursor-pointer hover:bg-slate-100 p-1 rounded transition">😂</span>
+                                <span class="emoji-opt cursor-pointer hover:bg-slate-100 p-1 rounded transition">🚀</span>
+                                <span class="emoji-opt cursor-pointer hover:bg-slate-100 p-1 rounded transition">💯</span>
+                                <span class="emoji-opt cursor-pointer hover:bg-slate-100 p-1 rounded transition">👀</span>
+                                <span class="emoji-opt cursor-pointer hover:bg-slate-100 p-1 rounded transition">💡</span>
+                                <span class="emoji-opt cursor-pointer hover:bg-slate-100 p-1 rounded transition">💻</span>
+                                <span class="emoji-opt cursor-pointer hover:bg-slate-100 p-1 rounded transition">📚</span>
+                                <span class="emoji-opt cursor-pointer hover:bg-slate-100 p-1 rounded transition">🤝</span>
+                                <span class="emoji-opt cursor-pointer hover:bg-slate-100 p-1 rounded transition">✨</span>
+                            </div>
+                        </div>
+
+                        <form id="chatFormInputBar" class="hidden flex items-center border border-slate-200 rounded-full px-4 py-2.5 bg-white shadow-sm focus-within:border-slate-300 transition">
+                            <button type="button" id="emojiToggleBtn" class="text-slate-400 hover:text-slate-600 transition pr-2 focus:outline-none">
+                                <i data-lucide="smile" class="w-5 h-5"></i>
+                            </button>
+                            <input type="text" id="chatInputField" placeholder="Message..." autocomplete="off" required class="flex-1 bg-transparent text-xs focus:outline-none placeholder-slate-400 text-slate-800">
+                            <button type="submit" class="text-blue-500 hover:text-blue-700 font-bold text-xs tracking-tight px-2 uppercase transition">Send</button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
     </main>
 
     <div id="loginModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl relative">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-100">
             <button id="closeModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">&times;</button>
-            <h3 class="text-xl font-bold text-blue-950 text-center">Welcome to Homies</h3>
-            <p class="text-xs text-slate-500 text-center mt-1 mb-6">Join your global student community</p>
-            <button id="googleLoginBtn" class="w-full border border-slate-300 hover:bg-slate-50 font-medium py-2.5 rounded-md flex items-center justify-center gap-2 text-sm transition">
-                <span class="font-bold text-red-500">G</span> Sign in with Google
+            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="lock" class="w-5 h-5"></i>
+            </div>
+            <h3 class="text-lg font-extrabold text-slate-900 text-center tracking-tight">Welcome to Homies</h3>
+            <p class="text-xs text-slate-400 text-center mt-0.5 mb-6">Access your global student dashboard layer.</p>
+            <button id="googleLoginBtn" class="w-full border border-slate-200 hover:bg-slate-50 font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wide transition shadow-sm bg-white">
+                <i data-lucide="log-in" class="w-4 h-4 text-blue-600"></i> Continue via Google
             </button>
         </div>
     </div>
 
-    <div id="profileModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 overflow-y-auto">
-        <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl my-8">
-            <h3 class="text-xl font-bold text-blue-950 text-center">Setup Your Professional Showcase</h3>
-            <form id="profileForm" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Custom Photo URL (Optional)</label>
-                    <input type="url" id="profilePhotoUrl" placeholder="Paste an image web link, or leave blank to use Google photo" class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">College / University</label>
-                        <input type="text" id="profileCollege" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Major / Course</label>
-                        <input type="text" id="profileMajor" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Short Bio / Headline</label>
-                    <input type="text" id="profileBio" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Skills (Separate with commas)</label>
-                    <textarea id="profileSkills" rows="2" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600"></textarea>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">LinkedIn Link (Optional)</label>
-                        <input type="url" id="profileLinkedInLink" class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">GitHub Link (Optional)</label>
-                        <input type="url" id="profileGitHubLink" class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
-                    </div>
-                </div>
-                <div class="flex gap-3 pt-2">
-                    <button type="button" id="closeProfileModalBtn" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold py-2.5 rounded-md transition">Cancel</button>
-                    <button type="submit" class="w-2/3 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold py-2.5 rounded-md transition shadow">Save Showcase Card</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <div id="marketModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl relative">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-100">
             <button id="closeMarketModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">&times;</button>
-            <h3 class="text-xl font-bold text-blue-950 text-center">Create a Listing</h3>
+            <h3 class="text-lg font-extrabold text-blue-950 text-center tracking-tight mb-4">Create a Marketplace Listing</h3>
             <form id="marketForm" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Listing Title</label>
-                    <input type="text" id="itemTitle" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Listing Title</label>
+                    <input type="text" id="itemTitle" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-300 focus:bg-white transition">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Category</label>
-                    <select id="itemCategory" class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600 bg-white">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Category</label>
+                    <select id="itemCategory" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-300 bg-white transition">
                         <option value="Skill Trade">Skill Trade / Tutoring</option>
                         <option value="Books & Notes">Books & Notes</option>
                         <option value="Electronics">Electronics</option>
@@ -207,14 +334,14 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Price / Deal Type</label>
-                    <input type="text" id="itemPrice" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Price / Deal Type</label>
+                    <input type="text" id="itemPrice" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-300 focus:bg-white transition">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Description</label>
-                    <textarea id="itemDescription" rows="3" required class="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-600"></textarea>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Description</label>
+                    <textarea id="itemDescription" rows="3" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-300 focus:bg-white transition resize-none"></textarea>
                 </div>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold py-2.5 rounded-md transition shadow mt-2">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-3 rounded-xl transition uppercase tracking-wide shadow-md mt-2">
                     Publish Listing
                 </button>
             </form>
@@ -224,6 +351,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="app.js"></script>
 </body>
 </html>
