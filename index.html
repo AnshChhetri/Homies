@@ -43,7 +43,6 @@
 
     <main class="max-w-6xl mx-auto px-6 py-8 space-y-12">
 
-        <!-- HOME VIEW -->
         <section id="viewHome" class="flex flex-col items-center justify-center text-center py-20 space-y-8">
             <div class="max-w-3xl mx-auto space-y-6">
                 <span class="bg-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-sm">
@@ -65,7 +64,6 @@
             </div>
         </section>
 
-        <!-- NETWORK VIEW -->
         <section id="viewNetwork" class="space-y-8 hidden">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -89,7 +87,6 @@
             <div id="networkGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
-        <!-- COMMUNITY VIEW -->
         <section id="viewCommunity" class="space-y-8 hidden">
             <div>
                 <h2 class="text-2xl font-bold text-blue-950 tracking-tight">Community Feed</h2>
@@ -114,7 +111,6 @@
             <div id="communityGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
         </section>
 
-        <!-- MARKETPLACE VIEW -->
         <section id="viewMarketplace" class="space-y-8 hidden">
             <div class="flex justify-between items-center">
                 <div>
@@ -128,7 +124,6 @@
             <div id="marketplaceGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
-        <!-- MY PROFILE VIEW -->
         <section id="viewMyProfile" class="hidden space-y-8">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 
@@ -200,11 +195,10 @@
                                 <input type="text" id="hubMajor" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs" required>
                             </div>
                         </div>
-                        <!-- BIO WITH WORD COUNTER -->
                         <div class="space-y-1.5">
                             <div class="flex items-center justify-between">
                                 <label class="text-[11px] font-bold text-slate-500 uppercase">Bio</label>
-                                <span id="hubBioCounter" class="text-[10px] text-slate-400">0/30 words</span>
+                                <span id="hubBioCounter" class="text-[10px] text-slate-400 font-semibold">0/30 words</span>
                             </div>
                             <input type="text" id="hubBio" placeholder="Tell others about yourself..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs" required>
                         </div>
@@ -221,7 +215,6 @@
             </div>
         </section>
 
-        <!-- MESSAGES VIEW -->
         <section id="viewMessages" class="hidden">
             <div class="bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-3 h-[600px]">
                 
@@ -290,9 +283,6 @@
         </section>
     </main>
 
-    <!-- ===================== MODALS ===================== -->
-
-    <!-- LOGIN MODAL -->
     <div id="loginModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-100 space-y-4">
             <button id="closeModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg focus:outline-none">&times;</button>
@@ -328,7 +318,6 @@
         </div>
     </div>
 
-    <!-- ONBOARDING MODAL -->
     <div id="onboardingModal" class="fixed inset-0 bg-black/70 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div class="text-center space-y-1">
@@ -344,11 +333,10 @@
                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Your Major Branch</label>
                     <input type="text" id="obMajor" placeholder="e.g., Computer Science" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none">
                 </div>
-                <!-- BIO WITH WORD COUNTER -->
                 <div>
                     <div class="flex items-center justify-between mb-1">
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Short Student Bio</label>
-                        <span id="obBioCounter" class="text-[10px] text-slate-400">0/30 words</span>
+                        <span id="obBioCounter" class="text-[10px] text-slate-400 font-semibold">0/30 words</span>
                     </div>
                     <input type="text" id="obBio" placeholder="What are your goals or skills?" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none">
                 </div>
@@ -361,7 +349,6 @@
         </div>
     </div>
 
-    <!-- MARKET MODAL -->
     <div id="marketModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-100">
             <button id="closeMarketModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg focus:outline-none">&times;</button>
@@ -393,9 +380,6 @@
         </div>
     </div>
 
-    <!-- =====================================================
-         PROFILE VIEW MODAL (LinkedIn-style)
-    ====================================================== -->
     <div id="profileViewModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-100 relative overflow-hidden max-h-[90vh] overflow-y-auto">
             <button id="closeProfileViewModal"
@@ -403,12 +387,35 @@
                 &times;
             </button>
             <div id="profileViewContent">
-                <!-- Dynamically injected by JS -->
-            </div>
+                </div>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const configureCounter = (inputId, counterId) => {
+                const inputEl = document.getElementById(inputId);
+                const counterEl = document.getElementById(counterId);
+                if (!inputEl || !counterEl) return;
+
+                const updateCount = () => {
+                    const text = inputEl.value.trim();
+                    const words = text.split(/\s+/).filter(w => w.length > 0);
+                    counterEl.innerText = `${words.length}/30 words`;
+                    
+                    if (words.length > 30) {
+                        counterEl.className = "text-[10px] text-red-500 font-bold animate-pulse";
+                    } else {
+                        counterEl.className = "text-[10px] text-slate-400 font-semibold";
+                    }
+                };
+                inputEl.addEventListener("input", updateCount);
+            };
+            configureCounter("obBio", "obBioCounter");
+            configureCounter("hubBio", "hubBioCounter");
+        });
+    </script>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>

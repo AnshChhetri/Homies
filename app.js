@@ -998,10 +998,30 @@ function listenToCommunityHub() {
             let postAvatar = post.isAnonymous
                 ? `<div class="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold"><i data-lucide="eye-off" class="w-4 h-4"></i></div>`
                 : `<div class="relative"><div class="w-9 h-9 rounded-full ${getAvatarColorClass(displayName)} text-white font-bold flex items-center justify-center text-xs uppercase shadow-sm">${displayName.charAt(0)}</div><span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-white ${userOnlineStatuses[post.authorUid] === 'online' ? 'bg-green-500' : 'bg-slate-300'}"></span></div>`;
+            
             let commentsHtml = "";
             commentsArray.forEach(cmt => {
-                commentsHtml += `<div class="bg-slate-50 rounded-xl p-2.5 text-xs border border-slate-100"><span class="font-bold text-slate-800 block">${cmt.authorName}</span><p class="text-slate-600">${cmt.content}</p></div>`;
+                const isCommentOwner = currentUid === cmt.authorUid;
+                // Generate unique fallback metadata tokens if older array comments miss explicit IDs
+                const cmtId = cmt.commentId || `${cmt.authorUid}_${cmt.createdAt}`;
+                
+                commentsHtml += `
+                    <div class="bg-slate-50 rounded-xl p-2.5 text-xs border border-slate-100" id="commentWrapper-${postId}-${cmtId}">
+                        <div class="flex justify-between items-start mb-0.5">
+                            <span class="font-bold text-slate-800 block">${cmt.authorName}</span>
+                            ${isCommentOwner ? `
+                                <button onclick="toggleCommentEditState('${postId}', '${cmtId}', \`${cmt.content.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="text-slate-400 hover:text-blue-500 transition ml-2">
+                                    <i data-lucide="pencil" class="w-3 h-3"></i>
+                                </button>
+                            ` : ""}
+                        </div>
+                        <div id="commentDisplay-${postId}-${cmtId}">
+                            <p class="text-slate-600">${cmt.content}</p>
+                        </div>
+                    </div>
+                `;
             });
+
             postCard.innerHTML = `
                 <div class="space-y-3 flex-1">
                     <div class="flex items-center justify-between">
@@ -1030,6 +1050,55 @@ function listenToCommunityHub() {
     });
 }
 
+// Inline edit state swapper engine
+window.toggleCommentEditState = function(postId, commentId, currentContent) {
+    const displayDiv = document.getElementById(`commentDisplay-${postId}-${commentId}`);
+    if (!displayDiv) return;
+
+    displayDiv.innerHTML = `
+        <div class="mt-1 space-y-1.5">
+            <input type="text" id="editCommentInput-${postId}-${commentId}" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-700 focus:outline-none" value="${currentContent.replace(/"/g, '&quot;')}">
+            <div class="flex gap-1 justify-end">
+                <button onclick="cancelCommentEdit('${postId}', '${commentId}', \`${currentContent.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="text-[10px] bg-slate-200 text-slate-600 font-bold px-2 py-0.5 rounded-md hover:bg-slate-300 transition">Cancel</button>
+                <button onclick="saveCommentEdit('${postId}', '${commentId}')" class="text-[10px] bg-blue-600 text-white font-bold px-2 py-0.5 rounded-md hover:bg-blue-700 transition">Save</button>
+            </div>
+        </div>
+    `;
+};
+
+window.cancelCommentEdit = function(postId, commentId, originalContent) {
+    const displayDiv = document.getElementById(`commentDisplay-${postId}-${commentId}`);
+    if (displayDiv) {
+        displayDiv.innerHTML = `<p class="text-slate-600">${originalContent}</p>`;
+    }
+};
+
+window.saveCommentEdit = async function(postId, commentId) {
+    const editedText = document.getElementById(`editCommentInput-${postId}-${commentId}`).value.trim();
+    if (!editedText) return alert("Comment cannot be empty!");
+
+    const postRef = db.collection('forum').doc(postId);
+    
+    try {
+        const doc = await postRef.get();
+        if (!doc.exists) return;
+        
+        const comments = doc.data().comments || [];
+        // Map updates across targeted elements inside array snapshot matching target ID markers
+        const updatedComments = comments.map(cmt => {
+            const currentCmtId = cmt.commentId || `${cmt.authorUid}_${cmt.createdAt}`;
+            if (currentCmtId === commentId) {
+                return { ...cmt, content: editedText, commentId: currentCmtId };
+            }
+            return cmt;
+        });
+
+        await postRef.update({ comments: updatedComments });
+    } catch (err) {
+        console.error("Error editing comment structure node:", err);
+    }
+};
+
 window.toggleUpvote = function(postId, userHasUpvotedString) {
     const user = auth.currentUser; if (!user) return alert("Sign in first!");
     const postRef = db.collection('forum').doc(postId);
@@ -1040,8 +1109,18 @@ window.toggleUpvote = function(postId, userHasUpvotedString) {
 window.submitComment = function(postId) {
     const user = auth.currentUser; const input = document.getElementById(`commentInput-${postId}`);
     if (!user || !input.value.trim()) return;
+    
+    // Inject custom hash signatures to keep arrays indexable for updates
+    const uniqueCommentId = `${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    
     db.collection('forum').doc(postId).update({
-        comments: firebase.firestore.FieldValue.arrayUnion({ authorUid: user.uid, authorName: (user.displayName || "Homie").split(' ')[0], content: input.value.trim(), createdAt: Date.now() })
+        comments: firebase.firestore.FieldValue.arrayUnion({ 
+            commentId: uniqueCommentId,
+            authorUid: user.uid, 
+            authorName: (user.displayName || "Homie").split(' ')[0], 
+            content: input.value.trim(), 
+            createdAt: Date.now() 
+        })
     }).then(() => input.value = "");
 };
 
