@@ -219,7 +219,7 @@ async function renderStarWidget(containerEl, student) {
                     data-val="${n}"
                     onmouseenter="previewStarRow('${student.uid}', ${n})"
                     onmouseleave="resetStarRow('${student.uid}', ${myRating || 0})"
-                    onclick="handleStarClick('${student.uid}', ${n})"
+                    onclick="event.stopPropagation(); handleStarClick('${student.uid}', ${n})"
                     aria-label="Rate ${n} star"
                 >★</button>
             `).join('')}
@@ -446,10 +446,22 @@ function evaluateAuthUserRoute(user) {
     });
 }
 
+// Word utility calculator helper
+function getWordCount(str) {
+    return str.trim().split(/\s+/).filter(word => word.length > 0).length;
+}
+
 onboardingForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const currentUser = auth.currentUser;
     if (!currentUser) return;
+    
+    const bioText = document.getElementById('obBio').value;
+    // Word validation rule limit logic configuration
+    if (getWordCount(bioText) > 30) {
+        return alert("Validation Alert: To avoid profile layout cutting, your bio must be 30 words or fewer!");
+    }
+
     db.collection('users').doc(currentUser.uid).set({
         uid: currentUser.uid,
         fullName: currentUser.displayName || "Student Homie",
@@ -457,7 +469,7 @@ onboardingForm.addEventListener('submit', (e) => {
         photoUrl: currentUser.photoURL || "",
         collegeName: document.getElementById('obCollege').value.trim(),
         major: document.getElementById('obMajor').value.trim(),
-        bio: document.getElementById('obBio').value.trim(),
+        bio: bioText.trim(),
         skills: document.getElementById('obSkills').value.trim(),
         presence: 'online',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -663,14 +675,92 @@ profileHubForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const currentUser = auth.currentUser;
     if (!currentUser) return;
+
+    const editBioText = hubBio.value;
+    if (getWordCount(editBioText) > 30) {
+        return alert("Validation Alert: Your bio must be 30 words or fewer!");
+    }
+
     db.collection('users').doc(currentUser.uid).set({
         photoUrl: hubPhotoUrl.value.trim(),
         collegeName: hubCollege.value.trim(),
         major: hubMajor.value.trim(),
-        bio: hubBio.value.trim(),
+        bio: editBioText.trim(),
         skills: hubSkills.value.trim()
     }, { merge: true }).then(() => closeHubEditingState());
 });
+
+// ============================================================
+// --- LINKEDIN-STYLE INSPECTION HUB (INSPIRATION MODAL) ---
+// ============================================================
+
+window.inspectStudentProfile = function(uid) {
+    const targetStudent = allStudentsCache.find(s => s.uid === uid);
+    if (!targetStudent) return;
+
+    // Check if an inspection modal template element structure is injected already
+    let inspectionModal = document.getElementById('homies-inspection-modal');
+    if (!inspectionModal) {
+        inspectionModal = document.createElement('div');
+        inspectionModal.id = 'homies-inspection-modal';
+        inspectionModal.className = "fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-[9999] hidden animate-fade-in";
+        document.body.appendChild(inspectionModal);
+    }
+
+    const presenceStatus = userOnlineStatuses[targetStudent.uid] || 'offline';
+    const statusColor = presenceStatus === 'online' ? 'bg-green-500' : 'bg-slate-300';
+
+    let inspectorAvatar = targetStudent.photoUrl 
+        ? `<div class="relative w-20 h-20 mx-auto"><img src="${targetStudent.photoUrl}" class="w-full h-full rounded-full object-cover shadow-md"><span class="absolute bottom-0 right-1 w-4 h-4 rounded-full border-2 border-white ${statusColor}"></span></div>`
+        : `<div class="relative w-20 h-20 mx-auto rounded-full ${getAvatarColorClass(targetStudent.fullName)} text-white font-bold flex items-center justify-center text-2xl uppercase shadow-md">${targetStudent.fullName ? targetStudent.fullName.charAt(0) : 'H'}<span class="absolute bottom-0 right-1 w-4 h-4 rounded-full border-2 border-white ${statusColor}"></span></div>`;
+
+    let skillsMarkup = "";
+    if (targetStudent.skills) {
+        targetStudent.skills.split(',').forEach(s => {
+            if (!s.trim()) return;
+            skillsMarkup += `<span class="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-lg border border-blue-100">${s.trim()}</span>`;
+        });
+    } else {
+        skillsMarkup = `<p class="text-xs text-slate-400 italic">No skills listed yet.</p>`;
+    }
+
+    inspectionModal.innerHTML = `
+        <div class="bg-white rounded-3xl w-full max-w-md p-6 shadow-xl border border-slate-100 relative animate-scale-up">
+            <button onclick="document.getElementById('homies-inspection-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="text-center space-y-3">
+                ${inspectorAvatar}
+                <div>
+                    <h3 class="text-lg font-extrabold text-slate-900 tracking-tight">${targetStudent.fullName || 'Anonymous Homie'}</h3>
+                    <p class="text-sm text-blue-600 font-semibold">${targetStudent.major || 'Undecided'}</p>
+                    <p class="text-xs text-slate-400 font-medium flex items-center justify-center gap-1 mt-1">
+                        <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> ${targetStudent.collegeName || 'Global Campus'}
+                    </p>
+                </div>
+                
+                <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-left my-4">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Full Bio / Inspiration Statement</h4>
+                    <p class="text-xs text-slate-700 leading-relaxed font-medium whitespace-pre-line">"${targetStudent.bio || 'Hello, let\'s connect!'}"</p>
+                </div>
+
+                <div class="text-left">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Framework Skills</h4>
+                    <div class="flex flex-wrap gap-1.5">${skillsMarkup}</div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 flex gap-2">
+                    <a href="mailto:${targetStudent.email}" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-xl transition text-center flex items-center justify-center gap-1.5 shadow-sm">
+                        <i data-lucide="mail" class="w-4 h-4"></i> Email Connect
+                    </a>
+                </div>
+            </div>
+        </div>
+    `;
+
+    inspectionModal.classList.remove('hidden');
+    lucide.createIcons();
+};
 
 // ============================================================
 // --- CAMPUS ROSTER + ⭐ RATING INTEGRATION ---
@@ -696,7 +786,9 @@ async function renderFilteredNetwork(studentsArray) {
 
     for (const student of studentsArray) {
         const studentCard = document.createElement('div');
-        studentCard.className = "bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between h-full relative overflow-hidden";
+        // Added cursor-pointer & click listener for LinkedIn-style full inspector mode discovery
+        studentCard.className = "bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between h-full relative overflow-hidden cursor-pointer hover:border-slate-300 transition duration-200";
+        studentCard.setAttribute('onclick', `inspectStudentProfile('${student.uid}')`);
 
         const currentPresence = userOnlineStatuses[student.uid] || 'offline';
         const statusDotColor = currentPresence === 'online' ? 'bg-green-500' : 'bg-slate-300';
@@ -734,11 +826,10 @@ async function renderFilteredNetwork(studentsArray) {
                 <div class="flex flex-wrap gap-1 mb-3">${skillsChips}</div>
             </div>
 
-            <!-- ⭐ STAR RATING WIDGET — injected below -->
             <div id="ratingWidget_${student.uid}" class="mb-3 pt-2 border-t border-slate-100"></div>
 
             <div class="mt-auto pt-3 border-t border-slate-100">
-                <a href="mailto:${student.email}" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs py-2 rounded-xl transition text-center flex items-center justify-center gap-1.5">
+                <a href="mailto:${student.email}" onclick="event.stopPropagation();" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs py-2 rounded-xl transition text-center flex items-center justify-center gap-1.5">
                     <i data-lucide="mail" class="w-3.5 h-3.5"></i> Email Connection
                 </a>
             </div>
