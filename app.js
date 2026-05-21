@@ -79,6 +79,12 @@ const studentCounter = document.getElementById('studentCounter');
 const communityPostBox = document.getElementById('communityPostBox');
 const communityForm = document.getElementById('communityForm');
 const communityGrid = document.getElementById('communityGrid');
+const postContent = document.getElementById('postContent');
+const postAttachmentUrl = document.getElementById('postAttachmentUrl');
+const postAnonymous = document.getElementById('postAnonymous');
+const postCharCounter = document.getElementById('postCharCounter');
+const communitySubmitBtn = document.getElementById('communitySubmitBtn');
+const composerAvatar = document.getElementById('composerAvatar');
 const openMarketModalBtn = document.getElementById('openMarketModalBtn');
 const marketModal = document.getElementById('marketModal');
 const closeMarketModalBtn = document.getElementById('closeMarketModalBtn');
@@ -535,6 +541,7 @@ auth.onAuthStateChanged(user => {
         navMessages.classList.remove('hidden');
         updateUserOnlineStatus('online');
         renderMyShowcaseDashboard(user.uid);
+        updateCommunityComposerAvatar();
         listenToUserInboxChats();
         initializeGlobalUnreadBadgeListener(user.uid);
         initializeGlobalPresenceListener();
@@ -551,9 +558,13 @@ auth.onAuthStateChanged(user => {
         if (chatMessagesUnsubscribe) chatMessagesUnsubscribe();
         if (globalUnreadUnsubscribe) globalUnreadUnsubscribe();
         if (presenceUnsubscribe) presenceUnsubscribe();
-        chatSidebarList.innerHTML = "";
-        onlineOverviewRow.innerHTML = "";
-        globalUnreadBadge.classList.add('hidden');
+        if (communityFeedUnsubscribe) communityFeedUnsubscribe();
+        Object.keys(threadReplyUnsubscribes).forEach(stopThreadReplyListener);
+        activeThreadPostId = null;
+        if (chatSidebarList) chatSidebarList.innerHTML = "";
+        if (onlineOverviewRow) onlineOverviewRow.innerHTML = "";
+        if (globalUnreadBadge) globalUnreadBadge.classList.add('hidden');
+        updateCommunityComposerAvatar();
     }
     listenToMarketplace();
     listenToCommunityHub();
@@ -979,157 +990,392 @@ chatFormInputBar.addEventListener('submit', (e) => {
 });
 
 // ============================================================
-// --- FORUM / COMMUNITY HUB ---
+// --- COMMUNITY FEED (Twitter / Threads) ---
 // ============================================================
 
-function listenToCommunityHub() {
-    db.collection('forum').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
-        communityGrid.innerHTML = "";
-        if (snapshot.empty) return;
-        const currentUid = auth.currentUser ? auth.currentUser.uid : null;
-        snapshot.forEach(doc => {
-            const post = doc.data(); const postId = doc.id;
-            const upvotesArray = post.upvotes || []; const commentsArray = post.comments || [];
-            const hasUpvoted = currentUid ? upvotesArray.includes(currentUid) : false;
-            const postCard = document.createElement('div');
-            postCard.className = "bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between space-y-4 h-full";
-            const isOwner = currentUid === post.authorUid;
-            const displayName = post.isAnonymous ? "Anonymous Homie" : (post.authorName || "Homie");
-            let postAvatar = post.isAnonymous
-                ? `<div class="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold"><i data-lucide="eye-off" class="w-4 h-4"></i></div>`
-                : `<div class="relative"><div class="w-9 h-9 rounded-full ${getAvatarColorClass(displayName)} text-white font-bold flex items-center justify-center text-xs uppercase shadow-sm">${displayName.charAt(0)}</div><span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-white ${userOnlineStatuses[post.authorUid] === 'online' ? 'bg-green-500' : 'bg-slate-300'}"></span></div>`;
-            
-            let commentsHtml = "";
-            commentsArray.forEach(cmt => {
-                const isCommentOwner = currentUid === cmt.authorUid;
-                // Generate unique fallback metadata tokens if older array comments miss explicit IDs
-                const cmtId = cmt.commentId || `${cmt.authorUid}_${cmt.createdAt}`;
-                
-                commentsHtml += `
-                    <div class="bg-slate-50 rounded-xl p-2.5 text-xs border border-slate-100" id="commentWrapper-${postId}-${cmtId}">
-                        <div class="flex justify-between items-start mb-0.5">
-                            <span class="font-bold text-slate-800 block">${cmt.authorName}</span>
-                            ${isCommentOwner ? `
-                                <button onclick="toggleCommentEditState('${postId}', '${cmtId}', \`${cmt.content.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="text-slate-400 hover:text-blue-500 transition ml-2">
-                                    <i data-lucide="pencil" class="w-3 h-3"></i>
-                                </button>
-                            ` : ""}
+const POSTS_COLLECTION = 'posts';
+const POST_CHAR_LIMIT = 280;
+let communityFeedUnsubscribe = null;
+let activeThreadPostId = null;
+const threadReplyUnsubscribes = {};
+
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function getMillisFromTimestamp(createdAt) {
+    if (!createdAt) return null;
+    if (typeof createdAt.toDate === 'function') return createdAt.toDate().getTime();
+    if (createdAt.seconds) return createdAt.seconds * 1000;
+    if (typeof createdAt === 'number') return createdAt;
+    const parsed = new Date(createdAt).getTime();
+    return isNaN(parsed) ? null : parsed;
+}
+
+function formatRelativeTime(createdAt) {
+    const ms = getMillisFromTimestamp(createdAt);
+    if (!ms) return 'Just now';
+    const diffSec = Math.floor((Date.now() - ms) / 1000);
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function updatePostComposerControls() {
+    if (!postContent || !communitySubmitBtn) return;
+    const len = postContent.value.length;
+    if (postCharCounter) {
+        postCharCounter.innerText = `${len}/${POST_CHAR_LIMIT}`;
+        postCharCounter.className = len > POST_CHAR_LIMIT
+            ? 'text-[10px] font-bold animate-pulse text-[var(--cta)]'
+            : 'text-[10px] font-semibold text-[var(--text-muted)]';
+    }
+    communitySubmitBtn.disabled = len === 0 || len > POST_CHAR_LIMIT;
+}
+
+function updateCommunityComposerAvatar() {
+    if (!composerAvatar) return;
+    const user = auth.currentUser;
+    if (!user) {
+        composerAvatar.className = 'w-11 h-11 rounded-full flex-shrink-0 bg-[var(--brand)] text-white font-bold flex items-center justify-center text-sm uppercase shadow-sm overflow-hidden border-2 border-white ring-2 ring-[#E0F5F5]';
+        composerAvatar.innerHTML = 'H';
+        return;
+    }
+    db.collection('users').doc(user.uid).get().then(doc => {
+        const photoUrl = doc.exists ? (doc.data().photoUrl || user.photoURL) : user.photoURL;
+        const displayName = doc.exists ? (doc.data().fullName || user.displayName) : user.displayName;
+        if (photoUrl) {
+            composerAvatar.className = 'w-11 h-11 rounded-full flex-shrink-0 overflow-hidden shadow-sm border-2 border-white ring-2 ring-[#E0F5F5]';
+            composerAvatar.innerHTML = `<img src="${escapeHtml(photoUrl)}" alt="" class="w-full h-full object-cover">`;
+        } else {
+            const initial = (displayName || 'H').charAt(0);
+            composerAvatar.className = `w-11 h-11 rounded-full flex-shrink-0 ${getAvatarColorClass(displayName)} text-white font-bold flex items-center justify-center text-sm uppercase shadow-sm overflow-hidden border-2 border-white ring-2 ring-[#E0F5F5]`;
+            composerAvatar.innerHTML = initial;
+        }
+    }).catch(() => {
+        composerAvatar.innerHTML = (user.displayName || 'H').charAt(0);
+    });
+}
+
+function buildTweetAvatarMarkup(post, displayName) {
+    if (post.isAnonymous) {
+        return `<div class="w-10 h-10 rounded-full bg-[var(--brand-dark)] text-white flex items-center justify-center flex-shrink-0 shadow-sm"><i data-lucide="eye-off" class="w-4 h-4"></i></div>`;
+    }
+    if (post.authorPhoto) {
+        return `<img src="${escapeHtml(post.authorPhoto)}" alt="" class="w-10 h-10 rounded-full object-cover flex-shrink-0 shadow-sm border border-[#E2E8F0]">`;
+    }
+    return `<div class="w-10 h-10 rounded-full flex-shrink-0 ${getAvatarColorClass(displayName)} text-white font-bold flex items-center justify-center text-sm uppercase shadow-sm">${escapeHtml((displayName || 'H').charAt(0))}</div>`;
+}
+
+function buildReplyAvatarMarkup(reply, displayName) {
+    if (reply.isAnonymous) {
+        return `<div class="w-8 h-8 rounded-full bg-[var(--brand-dark)] text-white flex items-center justify-center flex-shrink-0 text-[10px]"><i data-lucide="eye-off" class="w-3.5 h-3.5"></i></div>`;
+    }
+    if (reply.authorPhoto) {
+        return `<img src="${escapeHtml(reply.authorPhoto)}" alt="" class="w-8 h-8 rounded-full object-cover flex-shrink-0">`;
+    }
+    return `<div class="w-8 h-8 rounded-full flex-shrink-0 ${getAvatarColorClass(displayName)} text-white font-bold flex items-center justify-center text-[10px] uppercase">${escapeHtml((displayName || 'H').charAt(0))}</div>`;
+}
+
+function stopThreadReplyListener(postId) {
+    if (threadReplyUnsubscribes[postId]) {
+        threadReplyUnsubscribes[postId]();
+        delete threadReplyUnsubscribes[postId];
+    }
+}
+
+function listenToPostReplies(postId) {
+    const repliesListEl = document.getElementById(`threadReplies-${postId}`);
+    if (!repliesListEl) return;
+
+    stopThreadReplyListener(postId);
+    threadReplyUnsubscribes[postId] = db.collection(POSTS_COLLECTION).doc(postId).collection('replies')
+        .orderBy('createdAt', 'asc')
+        .onSnapshot(snapshot => {
+            repliesListEl.innerHTML = '';
+            if (snapshot.empty) {
+                repliesListEl.innerHTML = '<p class="text-[11px] text-[var(--text-muted)] py-2 italic">No replies yet. Start the thread.</p>';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                return;
+            }
+            snapshot.forEach(doc => {
+                const reply = doc.data();
+                const replyName = reply.isAnonymous ? 'Anonymous Homie' : (reply.authorName || 'Homie');
+                const replyRow = document.createElement('div');
+                replyRow.className = 'flex gap-2.5 py-2.5 border-b border-[#E2E8F0] last:border-0';
+                replyRow.innerHTML = `
+                    ${buildReplyAvatarMarkup(reply, replyName)}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-baseline gap-2 flex-wrap">
+                            <span class="font-bold text-xs text-[var(--text-main)]">${escapeHtml(replyName)}</span>
+                            <span class="text-[10px] text-[var(--text-muted)]">${formatRelativeTime(reply.createdAt)}</span>
                         </div>
-                        <div id="commentDisplay-${postId}-${cmtId}">
-                            <p class="text-slate-600">${cmt.content}</p>
-                        </div>
+                        <p class="text-xs text-[var(--text-main)] leading-relaxed mt-0.5 whitespace-pre-wrap break-words">${escapeHtml(reply.content)}</p>
                     </div>
                 `;
+                repliesListEl.appendChild(replyRow);
             });
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        });
+}
+
+window.togglePostThread = function(postId) {
+    const threadPanel = document.getElementById(`threadPanel-${postId}`);
+    if (!threadPanel) return;
+
+    const isHidden = threadPanel.classList.contains('hidden');
+    if (isHidden) {
+        if (activeThreadPostId && activeThreadPostId !== postId) {
+            const prevPanel = document.getElementById(`threadPanel-${activeThreadPostId}`);
+            if (prevPanel) prevPanel.classList.add('hidden');
+            stopThreadReplyListener(activeThreadPostId);
+        }
+        threadPanel.classList.remove('hidden');
+        activeThreadPostId = postId;
+        listenToPostReplies(postId);
+        const replyInput = document.getElementById(`threadReplyInput-${postId}`);
+        if (replyInput) replyInput.focus();
+    } else {
+        threadPanel.classList.add('hidden');
+        stopThreadReplyListener(postId);
+        if (activeThreadPostId === postId) activeThreadPostId = null;
+    }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.togglePostLike = function(postId, hasLikedStr) {
+    const user = auth.currentUser;
+    if (!user) return alert('Sign in to like posts!');
+    const postRef = db.collection(POSTS_COLLECTION).doc(postId);
+    const likeBtn = document.getElementById(`likeBtn-${postId}`);
+    const hasLiked = hasLikedStr === 'true';
+
+    if (hasLiked) {
+        postRef.update({ likes: firebase.firestore.FieldValue.arrayRemove(user.uid) });
+        if (likeBtn) {
+            likeBtn.classList.remove('text-[var(--cta)]');
+            likeBtn.classList.add('text-[var(--text-muted)]');
+        }
+    } else {
+        postRef.update({ likes: firebase.firestore.FieldValue.arrayUnion(user.uid) });
+        if (likeBtn) {
+            likeBtn.classList.remove('text-[var(--text-muted)]');
+            likeBtn.classList.add('text-[var(--cta)]');
+        }
+    }
+};
+
+window.submitThreadReply = function(postId) {
+    const user = auth.currentUser;
+    if (!user) return alert('Sign in to reply!');
+    const input = document.getElementById(`threadReplyInput-${postId}`);
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+    if (text.length > POST_CHAR_LIMIT) return alert(`Replies must be ${POST_CHAR_LIMIT} characters or fewer.`);
+
+    const replyAnonymousEl = document.getElementById(`threadReplyAnonymous-${postId}`);
+    const isAnonymous = replyAnonymousEl ? replyAnonymousEl.checked : false;
+
+    db.collection('users').doc(user.uid).get().then(userDoc => {
+        const profile = userDoc.exists ? userDoc.data() : {};
+        const authorPhoto = profile.photoUrl || user.photoURL || '';
+        const authorName = profile.fullName || user.displayName || 'Homie';
+
+        return db.collection(POSTS_COLLECTION).doc(postId).collection('replies').add({
+            content: text,
+            authorUid: user.uid,
+            authorName: isAnonymous ? 'Anonymous Homie' : authorName,
+            authorPhoto: isAnonymous ? '' : authorPhoto,
+            isAnonymous: isAnonymous,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+            return db.collection(POSTS_COLLECTION).doc(postId).update({
+                replyCount: firebase.firestore.FieldValue.increment(1)
+            });
+        });
+    }).then(() => {
+        input.value = '';
+        if (replyAnonymousEl) replyAnonymousEl.checked = false;
+    }).catch(err => console.error('Reply error:', err));
+};
+
+window.deleteCommunityPost = function(postId) {
+    if (!confirm('Delete this post?')) return;
+    stopThreadReplyListener(postId);
+    if (activeThreadPostId === postId) activeThreadPostId = null;
+    db.collection(POSTS_COLLECTION).doc(postId).delete();
+};
+
+function listenToCommunityHub() {
+    if (!communityGrid) return;
+    if (communityFeedUnsubscribe) communityFeedUnsubscribe();
+
+    communityFeedUnsubscribe = db.collection(POSTS_COLLECTION).orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+        if (!communityGrid) return;
+        communityGrid.innerHTML = '';
+
+        if (snapshot.empty) {
+            communityGrid.innerHTML = `
+                <div class="p-12 text-center">
+                    <div class="w-14 h-14 rounded-full bg-[#E0F5F5] text-[var(--brand)] flex items-center justify-center mx-auto mb-3">
+                        <i data-lucide="message-square" class="w-6 h-6"></i>
+                    </div>
+                    <p class="text-sm font-bold text-[var(--text-main)]">No posts yet</p>
+                    <p class="text-xs text-[var(--text-muted)] mt-1">Be the first to share something with campus.</p>
+                </div>`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            return;
+        }
+
+        const currentUid = auth.currentUser ? auth.currentUser.uid : null;
+
+        snapshot.forEach(doc => {
+            const post = doc.data();
+            const postId = doc.id;
+            const likesArray = post.likes || [];
+            const replyCount = typeof post.replyCount === 'number' ? post.replyCount : 0;
+            const hasLiked = currentUid ? likesArray.includes(currentUid) : false;
+            const isOwner = currentUid === post.authorUid;
+            const displayName = post.isAnonymous ? 'Anonymous Homie' : (post.authorName || 'Homie');
+            const timeLabel = formatRelativeTime(post.createdAt);
+            const attachmentBlock = post.attachmentUrl
+                ? `<img src="${escapeHtml(post.attachmentUrl)}" alt="" class="mt-3 rounded-2xl border border-[#E2E8F0] max-h-80 w-full object-cover bg-[var(--bg)]" loading="lazy">`
+                : '';
+
+            const postCard = document.createElement('article');
+            postCard.className = 'p-4 hover:bg-[var(--bg)]/60 transition-colors';
+            postCard.setAttribute('data-post-id', postId);
 
             postCard.innerHTML = `
-                <div class="space-y-3 flex-1">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            ${postAvatar}
-                            <div><h4 class="font-extrabold text-slate-900 text-xs tracking-tight leading-tight">${displayName}</h4></div>
+                <div class="flex gap-3">
+                    ${buildTweetAvatarMarkup(post, displayName)}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+                                <span class="font-extrabold text-sm text-[var(--text-main)] truncate">${escapeHtml(displayName)}</span>
+                                ${!post.isAnonymous && post.authorUid ? `<span class="text-[10px] text-[var(--text-muted)]">· @homie</span>` : ''}
+                                <span class="text-[10px] text-[var(--text-muted)]">· ${timeLabel}</span>
+                            </div>
+                            ${isOwner ? `<button type="button" onclick="event.stopPropagation(); deleteCommunityPost('${postId}')" class="text-[var(--text-muted)] hover:text-[var(--cta)] transition p-1" aria-label="Delete post"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
                         </div>
-                        ${isOwner ? `<button onclick="deleteForumPost('${postId}')" class="text-slate-300 hover:text-red-500 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
-                    </div>
-                    <p class="text-xs text-slate-600 leading-relaxed">${post.content}</p>
-                </div>
-                <div class="pt-3 border-t border-slate-100 space-y-3">
-                    <div class="flex items-center gap-3 text-xs">
-                        <button onclick="toggleUpvote('${postId}', '${hasUpvoted}')" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl font-bold transition ${hasUpvoted ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-600'}"><i data-lucide="thumbs-up" class="w-3.5 h-3.5"></i> <span>${upvotesArray.length}</span></button>
-                        <button onclick="document.getElementById('commentThread-${postId}').classList.toggle('hidden')" class="bg-slate-50 text-slate-600 font-bold px-2.5 py-1.5 rounded-xl transition flex items-center gap-1"><i data-lucide="message-square" class="w-3.5 h-3.5"></i> ${commentsArray.length} Replies</button>
-                    </div>
-                    <div id="commentThread-${postId}" class="hidden space-y-2 pt-2">
-                        <div class="space-y-1.5 max-h-40 overflow-y-auto">${commentsHtml || '<p class="text-[11px] text-slate-400 py-1 italic">No replies yet.</p>'}</div>
-                        <div class="flex gap-2"><input type="text" id="commentInput-${postId}" placeholder="Write a reply..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none"><button onclick="submitComment('${postId}')" class="bg-slate-900 text-white font-bold text-xs px-3 rounded-xl">Send</button></div>
+                        <p class="text-sm text-[var(--text-main)] leading-relaxed mt-1 whitespace-pre-wrap break-words">${escapeHtml(post.content)}</p>
+                        ${attachmentBlock}
+                        <div class="flex items-center gap-6 mt-3 pt-2 max-w-xs">
+                            <button
+                                type="button"
+                                id="likeBtn-${postId}"
+                                onclick="event.stopPropagation(); togglePostLike('${postId}', '${hasLiked}')"
+                                class="group flex items-center gap-1.5 text-xs font-bold transition ${hasLiked ? 'text-[var(--cta)]' : 'text-[var(--text-muted)]'} hover:text-[var(--cta)]"
+                            >
+                                <span class="p-2 rounded-full group-hover:bg-[#FFE8E8] transition flex items-center justify-center">
+                                    <i data-lucide="heart" class="w-4 h-4 ${hasLiked ? 'fill-current' : ''}"></i>
+                                </span>
+                                <span id="likeCount-${postId}" class="tabular-nums">${likesArray.length}</span>
+                            </button>
+                            <button
+                                type="button"
+                                onclick="event.stopPropagation(); togglePostThread('${postId}')"
+                                class="group flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--brand)] transition"
+                            >
+                                <span class="p-2 rounded-full group-hover:bg-[#E0F5F5] transition flex items-center justify-center">
+                                    <i data-lucide="message-circle" class="w-4 h-4"></i>
+                                </span>
+                                <span id="replyCount-${postId}" class="tabular-nums">${replyCount}</span>
+                            </button>
+                        </div>
+                        <div id="threadPanel-${postId}" class="hidden mt-3 pt-3 border-t border-[#E2E8F0] space-y-3">
+                            <div id="threadReplies-${postId}" class="space-y-0 max-h-64 overflow-y-auto pl-1"></div>
+                            <div class="flex gap-2 items-end pt-1">
+                                <input
+                                    type="text"
+                                    id="threadReplyInput-${postId}"
+                                    maxlength="280"
+                                    placeholder="Post your reply..."
+                                    class="flex-1 rounded-full px-4 py-2 text-xs border border-[#E2E8F0] bg-[var(--bg)] text-[var(--text-main)] focus:outline-none focus:border-[var(--brand)]"
+                                />
+                                <button
+                                    type="button"
+                                    onclick="event.stopPropagation(); submitThreadReply('${postId}')"
+                                    class="text-white font-bold text-xs px-4 py-2 rounded-full shadow-sm bg-[var(--brand)] hover:bg-[var(--brand-dark)] transition"
+                                >
+                                    Reply
+                                </button>
+                            </div>
+                            <label class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide cursor-pointer text-[var(--text-muted)]">
+                                <input type="checkbox" id="threadReplyAnonymous-${postId}" class="rounded h-3.5 w-3.5 accent-[var(--brand)]">
+                                Reply anonymously
+                            </label>
+                        </div>
                     </div>
                 </div>
             `;
             communityGrid.appendChild(postCard);
         });
-        lucide.createIcons();
+
+        if (activeThreadPostId) {
+            const panel = document.getElementById(`threadPanel-${activeThreadPostId}`);
+            if (panel) {
+                panel.classList.remove('hidden');
+                listenToPostReplies(activeThreadPostId);
+            }
+        }
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     });
 }
 
-// Inline edit state swapper engine
-window.toggleCommentEditState = function(postId, commentId, currentContent) {
-    const displayDiv = document.getElementById(`commentDisplay-${postId}-${commentId}`);
-    if (!displayDiv) return;
+if (communityForm) {
+    communityForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const currentUser = auth.currentUser;
+        if (!currentUser) return alert('Sign in to post!');
+        if (!postContent) return;
 
-    displayDiv.innerHTML = `
-        <div class="mt-1 space-y-1.5">
-            <input type="text" id="editCommentInput-${postId}-${commentId}" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-700 focus:outline-none" value="${currentContent.replace(/"/g, '&quot;')}">
-            <div class="flex gap-1 justify-end">
-                <button onclick="cancelCommentEdit('${postId}', '${commentId}', \`${currentContent.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="text-[10px] bg-slate-200 text-slate-600 font-bold px-2 py-0.5 rounded-md hover:bg-slate-300 transition">Cancel</button>
-                <button onclick="saveCommentEdit('${postId}', '${commentId}')" class="text-[10px] bg-blue-600 text-white font-bold px-2 py-0.5 rounded-md hover:bg-blue-700 transition">Save</button>
-            </div>
-        </div>
-    `;
-};
+        const content = postContent.value.trim();
+        if (!content || content.length > POST_CHAR_LIMIT) return;
 
-window.cancelCommentEdit = function(postId, commentId, originalContent) {
-    const displayDiv = document.getElementById(`commentDisplay-${postId}-${commentId}`);
-    if (displayDiv) {
-        displayDiv.innerHTML = `<p class="text-slate-600">${originalContent}</p>`;
-    }
-};
+        const isAnonymous = postAnonymous ? postAnonymous.checked : false;
+        const attachmentUrl = postAttachmentUrl ? postAttachmentUrl.value.trim() : '';
 
-window.saveCommentEdit = async function(postId, commentId) {
-    const editedText = document.getElementById(`editCommentInput-${postId}-${commentId}`).value.trim();
-    if (!editedText) return alert("Comment cannot be empty!");
+        db.collection('users').doc(currentUser.uid).get().then(userDoc => {
+            const profile = userDoc.exists ? userDoc.data() : {};
+            const authorPhoto = profile.photoUrl || currentUser.photoURL || '';
+            const authorName = profile.fullName || currentUser.displayName || 'Homie';
 
-    const postRef = db.collection('forum').doc(postId);
-    
-    try {
-        const doc = await postRef.get();
-        if (!doc.exists) return;
-        
-        const comments = doc.data().comments || [];
-        // Map updates across targeted elements inside array snapshot matching target ID markers
-        const updatedComments = comments.map(cmt => {
-            const currentCmtId = cmt.commentId || `${cmt.authorUid}_${cmt.createdAt}`;
-            if (currentCmtId === commentId) {
-                return { ...cmt, content: editedText, commentId: currentCmtId };
-            }
-            return cmt;
-        });
+            const postPayload = {
+                content: content,
+                isAnonymous: isAnonymous,
+                authorUid: currentUser.uid,
+                authorName: isAnonymous ? 'Anonymous Homie' : authorName,
+                authorPhoto: isAnonymous ? '' : authorPhoto,
+                likes: [],
+                replyCount: 0,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            if (attachmentUrl) postPayload.attachmentUrl = attachmentUrl;
 
-        await postRef.update({ comments: updatedComments });
-    } catch (err) {
-        console.error("Error editing comment structure node:", err);
-    }
-};
+            return db.collection(POSTS_COLLECTION).add(postPayload);
+        }).then(() => {
+            communityForm.reset();
+            updatePostComposerControls();
+            if (postAnonymous) postAnonymous.checked = false;
+        }).catch(err => console.error('Post error:', err));
+    });
+}
 
-window.toggleUpvote = function(postId, userHasUpvotedString) {
-    const user = auth.currentUser; if (!user) return alert("Sign in first!");
-    const postRef = db.collection('forum').doc(postId);
-    if (userHasUpvotedString === "true") { postRef.update({ upvotes: firebase.firestore.FieldValue.arrayRemove(user.uid) }); }
-    else { postRef.update({ upvotes: firebase.firestore.FieldValue.arrayUnion(user.uid) }); }
-};
-
-window.submitComment = function(postId) {
-    const user = auth.currentUser; const input = document.getElementById(`commentInput-${postId}`);
-    if (!user || !input.value.trim()) return;
-    
-    // Inject custom hash signatures to keep arrays indexable for updates
-    const uniqueCommentId = `${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-    
-    db.collection('forum').doc(postId).update({
-        comments: firebase.firestore.FieldValue.arrayUnion({ 
-            commentId: uniqueCommentId,
-            authorUid: user.uid, 
-            authorName: (user.displayName || "Homie").split(' ')[0], 
-            content: input.value.trim(), 
-            createdAt: Date.now() 
-        })
-    }).then(() => input.value = "");
-};
-
-communityForm.addEventListener('submit', (e) => {
-    e.preventDefault(); const currentUser = auth.currentUser; if (!currentUser) return;
-    db.collection('forum').add({ authorUid: currentUser.uid, authorName: currentUser.displayName || "Homie", content: document.getElementById('postContent').value, isAnonymous: document.getElementById('postAnonymous').checked, upvotes: [], comments: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(() => communityForm.reset());
-});
-
-window.deleteForumPost = function(postId) { if (confirm("Delete post?")) db.collection('forum').doc(postId).delete(); };
+if (postContent) {
+    postContent.addEventListener('input', updatePostComposerControls);
+    updatePostComposerControls();
+}
 
 // ============================================================
 // --- MARKETPLACE ---
@@ -1196,4 +1442,19 @@ listenToStudentNetwork();
 //     && request.resource.data.from == request.auth.uid
 //     && request.resource.data.to != request.auth.uid;
 // }
+//
+// match /posts/{postId} {
+//   allow read: if true;
+//   allow create: if request.auth != null
+//     && request.resource.data.authorUid == request.auth.uid;
+//   allow update, delete: if request.auth != null
+//     && resource.data.authorUid == request.auth.uid;
+//   match /replies/{replyId} {
+//     allow read: if true;
+//     allow create: if request.auth != null
+//       && request.resource.data.authorUid == request.auth.uid;
+//   }
+// }
+// Note: Likes require a rule allowing authenticated users to update
+// only the `likes` field on any post (or use Cloud Functions).
 // ============================================================

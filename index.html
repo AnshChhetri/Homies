@@ -5,8 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Homies - Your Student Network</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand:       #2ABFBF;
+            --brand-dark:  #1A7A7A;
+            --bg:          #F9F9F7;
+            --surface:     #FFFFFF;
+            --text-main:   #2D3748;
+            --text-muted:  #718096;
+            --cta:         #FF6B6B;
+            --cta-hover:   #E05555;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-main); }
+        h1, h2, h3, h4, h5, h6, .font-heading { font-family: 'Sora', sans-serif; }
+    </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-800 antialiased">
+<body class="antialiased">
 
     <nav class="bg-blue-950 text-white px-6 py-4 flex justify-between items-center shadow-md sticky top-0 z-40">
         <div class="text-xl font-black tracking-wider cursor-pointer flex items-center gap-2" id="navLogo">
@@ -87,28 +102,55 @@
             <div id="networkGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
-        <section id="viewCommunity" class="space-y-8 hidden">
+        <section id="viewCommunity" class="space-y-6 hidden max-w-2xl mx-auto w-full">
             <div>
-                <h2 class="text-2xl font-bold text-blue-950 tracking-tight">Community Feed</h2>
-                <p class="text-xs text-slate-400 mt-0.5">Share thoughts, ask questions, or post announcements anonymously.</p>
+                <h2 class="text-2xl font-bold font-heading tracking-tight text-[var(--brand-dark)]">Community Feed</h2>
+                <p class="text-xs mt-0.5 text-[var(--text-muted)]">Post publicly or anonymously — like, reply, and thread with your campus.</p>
             </div>
 
-            <div id="communityPostBox" class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hidden">
-                <form id="communityForm" class="space-y-4">
-                    <textarea id="postContent" placeholder="What's happening on campus? Ask anything..." rows="3" required class="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-slate-300 bg-slate-50 focus:bg-white transition resize-none"></textarea>
-                    <div class="flex items-center justify-between">
-                        <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wide cursor-pointer select-none">
-                            <input type="checkbox" id="postAnonymous" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4">
-                            Post Anonymously
-                        </label>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl transition text-xs uppercase tracking-wide shadow-md">
-                            Post Update
-                        </button>
+            <div id="communityPostBox" class="bg-[var(--surface)] rounded-2xl border border-[#E2E8F0] p-5 shadow-sm hidden">
+                <form id="communityForm" class="space-y-0">
+                    <div class="flex gap-4 items-start">
+                        <div id="composerAvatar" class="w-11 h-11 rounded-full flex-shrink-0 bg-[var(--brand)] text-white font-bold flex items-center justify-center text-sm uppercase shadow-sm overflow-hidden border-2 border-white ring-2 ring-[#E0F5F5]">
+                            H
+                        </div>
+                        <div class="flex-1 min-w-0 space-y-3">
+                            <textarea
+                                id="postContent"
+                                maxlength="280"
+                                placeholder="What's happening on campus?"
+                                rows="3"
+                                class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none transition resize-none border border-[#E2E8F0] bg-[var(--bg)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:border-[var(--brand)] focus:bg-[var(--surface)]"
+                            ></textarea>
+                            <input
+                                type="url"
+                                id="postAttachmentUrl"
+                                placeholder="Image/GIF URL Attachment (optional)"
+                                class="w-full rounded-xl px-4 py-2 text-xs focus:outline-none transition border border-[#E2E8F0] bg-[var(--bg)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:border-[var(--brand)]"
+                            />
+                            <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+                                <div class="flex flex-wrap items-center gap-4">
+                                    <label class="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide cursor-pointer select-none text-[var(--text-muted)]">
+                                        <input type="checkbox" id="postAnonymous" class="rounded h-4 w-4 accent-[var(--brand)]">
+                                        Post Anonymously
+                                    </label>
+                                    <span id="postCharCounter" class="text-[10px] font-semibold text-[var(--text-muted)]">0/280</span>
+                                </div>
+                                <button
+                                    type="submit"
+                                    id="communitySubmitBtn"
+                                    disabled
+                                    class="text-white font-bold px-5 py-2.5 rounded-full transition text-xs uppercase tracking-wide shadow-md disabled:opacity-40 disabled:cursor-not-allowed bg-[var(--cta)] hover:bg-[var(--cta-hover)] enabled:hover:shadow-lg"
+                                >
+                                    Post
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
 
-            <div id="communityGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            <div id="communityGrid" class="flex flex-col border border-[#E2E8F0] rounded-2xl overflow-hidden bg-[var(--surface)] shadow-sm divide-y divide-[#E2E8F0]"></div>
         </section>
 
         <section id="viewMarketplace" class="space-y-8 hidden">
@@ -413,6 +455,24 @@
             };
             configureCounter("obBio", "obBioCounter");
             configureCounter("hubBio", "hubBioCounter");
+
+            const postContentEl = document.getElementById("postContent");
+            const postCharCounterEl = document.getElementById("postCharCounter");
+            const communitySubmitBtnEl = document.getElementById("communitySubmitBtn");
+            if (postContentEl && postCharCounterEl && communitySubmitBtnEl) {
+                const syncPostComposer = () => {
+                    const len = postContentEl.value.length;
+                    postCharCounterEl.innerText = `${len}/280`;
+                    if (len > 280) {
+                        postCharCounterEl.className = "text-[10px] font-bold animate-pulse text-[var(--cta)]";
+                    } else {
+                        postCharCounterEl.className = "text-[10px] font-semibold text-[var(--text-muted)]";
+                    }
+                    communitySubmitBtnEl.disabled = len === 0 || len > 280;
+                };
+                postContentEl.addEventListener("input", syncPostComposer);
+                syncPostComposer();
+            }
         });
     </script>
 
