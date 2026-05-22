@@ -91,6 +91,15 @@ const closeMarketModalBtn = document.getElementById('closeMarketModalBtn');
 const marketForm = document.getElementById('marketForm');
 const marketplaceGrid = document.getElementById('marketplaceGrid');
 
+const reportBugBtn = document.getElementById('reportBugBtn');
+const bugReportModal = document.getElementById('bugReportModal');
+const closeBugReportModalBtn = document.getElementById('closeBugReportModalBtn');
+const bugReportForm = document.getElementById('bugReportForm');
+const bugReportStatus = document.getElementById('bugReportStatus');
+const bugReportSubmitBtn = document.getElementById('bugReportSubmitBtn');
+const bugReportEmailSubject = document.getElementById('bugReportEmailSubject');
+const FORMSPREE_BUG_ENDPOINT = 'https://formspree.io/f/mojbwebz';
+
 // Live Messaging View Setup
 const chatSidebarList = document.getElementById('chatSidebarList');
 const chatWindowHeader = document.getElementById('chatWindowHeader');
@@ -420,6 +429,72 @@ closeModalBtn.addEventListener('click', () => {
 
 openMarketModalBtn.addEventListener('click', () => marketModal.classList.remove('hidden'));
 closeMarketModalBtn.addEventListener('click', () => marketModal.classList.add('hidden'));
+
+const closeBugReportModal = () => {
+    bugReportModal.classList.add('hidden');
+    bugReportForm.reset();
+    bugReportStatus.classList.add('hidden');
+    bugReportStatus.textContent = '';
+    bugReportSubmitBtn.disabled = false;
+};
+
+const showBugReportStatus = (message, isError) => {
+    bugReportStatus.textContent = message;
+    bugReportStatus.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-800', 'border', 'border-emerald-200', 'bg-red-50', 'text-red-800', 'border-red-200');
+    if (isError) {
+        bugReportStatus.classList.add('bg-red-50', 'text-red-800', 'border', 'border-red-200');
+    } else {
+        bugReportStatus.classList.add('bg-emerald-50', 'text-emerald-800', 'border', 'border-emerald-200');
+    }
+};
+
+reportBugBtn.addEventListener('click', () => {
+    bugReportModal.classList.remove('hidden');
+    lucide.createIcons();
+});
+
+closeBugReportModalBtn.addEventListener('click', closeBugReportModal);
+
+bugReportModal.addEventListener('click', (e) => {
+    if (e.target === bugReportModal) closeBugReportModal();
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !bugReportModal.classList.contains('hidden')) closeBugReportModal();
+});
+
+bugReportForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const issueTitle = document.getElementById('issueTitle').value.trim();
+    if (bugReportEmailSubject) {
+        bugReportEmailSubject.value = issueTitle ? `Homies Bug: ${issueTitle}` : 'Homies Bug Report';
+    }
+
+    bugReportSubmitBtn.disabled = true;
+    bugReportStatus.classList.add('hidden');
+
+    try {
+        const response = await fetch(FORMSPREE_BUG_ENDPOINT, {
+            method: 'POST',
+            body: new FormData(bugReportForm),
+            headers: { Accept: 'application/json' }
+        });
+
+        if (response.ok) {
+            showBugReportStatus('Thank you! Your bug report was submitted successfully.', false);
+            bugReportForm.reset();
+            setTimeout(closeBugReportModal, 2000);
+        } else {
+            const data = await response.json().catch(() => ({}));
+            const errMsg = data.error || 'Something went wrong. Please try again.';
+            showBugReportStatus(errMsg, true);
+            bugReportSubmitBtn.disabled = false;
+        }
+    } catch {
+        showBugReportStatus('Network error — check your connection and try again.', true);
+        bugReportSubmitBtn.disabled = false;
+    }
+});
 
 emailAuthForm.addEventListener('submit', (e) => {
     e.preventDefault();
