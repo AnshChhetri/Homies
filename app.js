@@ -79,6 +79,9 @@ const studentCounter = document.getElementById('studentCounter');
 const communityPostBox = document.getElementById('communityPostBox');
 const communityForm = document.getElementById('communityForm');
 const communityGrid = document.getElementById('communityGrid');
+const communityTabCampus = document.getElementById('communityTabCampus');
+const communityTabGlobal = document.getElementById('communityTabGlobal');
+const postTitle = document.getElementById('postTitle');
 const postContent = document.getElementById('postContent');
 const postAttachmentUrl = document.getElementById('postAttachmentUrl');
 const postAnonymous = document.getElementById('postAnonymous');
@@ -90,6 +93,12 @@ const marketModal = document.getElementById('marketModal');
 const closeMarketModalBtn = document.getElementById('closeMarketModalBtn');
 const marketForm = document.getElementById('marketForm');
 const marketplaceGrid = document.getElementById('marketplaceGrid');
+const marketplaceFilterChips = document.getElementById('marketplaceFilterChips');
+
+const LISTING_STATUS_OPTIONS = ['available', 'sold', 'reserved'];
+let activeMarketplaceFilter = 'All';
+let marketplaceListingsCache = [];
+let marketplaceUnsubscribe = null;
 
 const reportBugBtn = document.getElementById('reportBugBtn');
 const bugReportModal = document.getElementById('bugReportModal');
@@ -547,6 +556,7 @@ onboardingForm.addEventListener('submit', (e) => {
         uid: currentUser.uid,
         fullName: currentUser.displayName || "Student Homie",
         email: currentUser.email,
+        institutionDomain: extractInstitutionDomainFromEmail(currentUser.email),
         photoUrl: currentUser.photoURL || "",
         collegeName: document.getElementById('obCollege').value.trim(),
         major: document.getElementById('obMajor').value.trim(),
@@ -617,6 +627,10 @@ auth.onAuthStateChanged(user => {
         updateUserOnlineStatus('online');
         renderMyShowcaseDashboard(user.uid);
         updateCommunityComposerAvatar();
+        ensureUserInstitutionDomain(user).then(domain => {
+            cachedUserInstitutionDomain = domain;
+            listenToCommunityHub();
+        });
         listenToUserInboxChats();
         initializeGlobalUnreadBadgeListener(user.uid);
         initializeGlobalPresenceListener();
@@ -633,7 +647,10 @@ auth.onAuthStateChanged(user => {
         if (chatMessagesUnsubscribe) chatMessagesUnsubscribe();
         if (globalUnreadUnsubscribe) globalUnreadUnsubscribe();
         if (presenceUnsubscribe) presenceUnsubscribe();
-        if (communityFeedUnsubscribe) communityFeedUnsubscribe();
+        stopCommunityFeedListener();
+        cachedUserInstitutionDomain = null;
+        activeCommunityFeedScope = 'campus';
+        setActiveCommunityScopeTab('campus');
         Object.keys(threadReplyUnsubscribes).forEach(stopThreadReplyListener);
         activeThreadPostId = null;
         if (chatSidebarList) chatSidebarList.innerHTML = "";
@@ -642,7 +659,7 @@ auth.onAuthStateChanged(user => {
         updateCommunityComposerAvatar();
     }
     listenToMarketplace();
-    listenToCommunityHub();
+    if (!user) listenToCommunityHub();
 });
 
 // ============================================================
@@ -682,11 +699,151 @@ function getAvatarColorClass(name) {
 
 function getCategoryBadgeStyle(category) {
     switch (category) {
-        case 'Skill Trade': return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-        case 'Books & Notes': return 'bg-purple-50 text-purple-700 border border-purple-200';
-        case 'Electronics': return 'bg-amber-50 text-amber-700 border border-amber-200';
-        default: return 'bg-slate-50 text-slate-700 border border-slate-200';
+        case 'Textbooks':
+        case 'Books & Notes':
+            return 'bg-purple-50 text-purple-700 border border-purple-200';
+        case 'Dorm Decor':
+            return 'bg-pink-50 text-pink-700 border border-pink-200';
+        case 'Electronics':
+            return 'bg-amber-50 text-amber-700 border border-amber-200';
+        case 'Clothing':
+            return 'bg-rose-50 text-rose-700 border border-rose-200';
+        case 'Skill Trade':
+            return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+        default:
+            return 'bg-slate-50 text-slate-700 border border-slate-200';
     }
+}
+
+function listingMatchesMarketplaceFilter(item, filter) {
+    if (filter === 'All') return true;
+    if (filter === 'Textbooks') {
+        return item.category === 'Textbooks' || item.category === 'Books & Notes';
+    }
+    return item.category === filter;
+}
+
+function setActiveMarketplaceFilterChip(filter) {
+    activeMarketplaceFilter = filter;
+    if (!marketplaceFilterChips) return;
+    marketplaceFilterChips.querySelectorAll('.market-filter-chip').forEach(chip => {
+        const isActive = chip.dataset.marketFilter === filter;
+        chip.classList.toggle('bg-blue-600', isActive);
+        chip.classList.toggle('text-white', isActive);
+        chip.classList.toggle('border-blue-600', isActive);
+        chip.classList.toggle('shadow-sm', isActive);
+        chip.classList.toggle('bg-white', !isActive);
+        chip.classList.toggle('text-slate-600', !isActive);
+        chip.classList.toggle('border-slate-200', !isActive);
+        chip.classList.toggle('hover:border-blue-300', !isActive);
+        chip.classList.toggle('hover:text-blue-700', !isActive);
+    });
+}
+
+function initMarketplaceFilterChips() {
+    if (!marketplaceFilterChips) return;
+    marketplaceFilterChips.querySelectorAll('.market-filter-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            setActiveMarketplaceFilterChip(chip.dataset.marketFilter);
+            renderMarketplaceListings(marketplaceListingsCache);
+        });
+    });
+}
+
+function createMarketplaceListingCard(item, listingId, currentUid) {
+    const isOwner = currentUid === item.sellerUid;
+    const isSold = item.status === 'sold';
+    const sellerPresence = userOnlineStatuses[item.sellerUid] || 'offline';
+    const sellerDotColor = sellerPresence === 'online' ? 'bg-green-500' : 'bg-slate-300';
+    const safeTitle = (item.title || '').replace(/'/g, "\\'");
+
+    const itemCard = document.createElement('article');
+    itemCard.className = `relative bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between overflow-hidden ${isSold ? 'border-slate-300' : ''}`;
+    itemCard.dataset.listingId = listingId;
+
+    const statusSelectHtml = isOwner
+        ? `<select
+                class="listing-status-select bg-slate-50 border border-slate-200 text-[10px] font-bold uppercase tracking-wide rounded-lg px-2 py-1.5 text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30 cursor-pointer"
+                data-listing-id="${listingId}"
+                aria-label="Update listing status"
+           >
+                ${LISTING_STATUS_OPTIONS.map(status => `
+                    <option value="${status}" ${(item.status || 'available') === status ? 'selected' : ''}>${status}</option>
+                `).join('')}
+           </select>`
+        : '';
+
+    const ownerActionsHtml = isOwner
+        ? `<div class="flex items-center gap-2 flex-wrap justify-end">
+                ${statusSelectHtml}
+                <button type="button" onclick="deleteListing('${listingId}')" class="bg-red-50 text-red-600 font-bold text-[11px] px-3 py-2 rounded-xl flex items-center gap-1 hover:bg-red-100 transition">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete
+                </button>
+           </div>`
+        : `<button type="button" onclick="window.openMarketplaceChat('${item.sellerUid}', '${item.sellerName}', '${safeTitle}')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] px-3 py-2 rounded-xl shadow-sm flex items-center gap-1 transition">
+                <i data-lucide="message-square" class="w-3.5 h-3.5"></i> Chat
+           </button>`;
+
+    itemCard.innerHTML = `
+        ${isSold ? `
+            <div class="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                <span class="bg-slate-900/75 text-white text-xs font-black uppercase tracking-[0.2em] px-5 py-2 rounded-full border border-white/20 shadow-lg backdrop-blur-sm">
+                    Sold
+                </span>
+            </div>
+        ` : ''}
+        <div class="${isSold ? 'blur-[2px] grayscale opacity-55 select-none' : ''}">
+            <div class="flex justify-between items-center mb-3 gap-2">
+                <span class="${getCategoryBadgeStyle(item.category)} text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md shrink-0">${item.category || 'Other'}</span>
+                <span class="text-xs font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full shrink-0">${item.price}</span>
+            </div>
+            <h4 class="font-extrabold text-slate-900 text-sm mb-1.5 leading-snug tracking-tight">${item.title}</h4>
+            <p class="text-xs text-slate-500 line-clamp-2 mb-4 bg-slate-50 border border-slate-100 p-2 rounded-xl italic">"${item.description}"</p>
+        </div>
+        <div class="relative z-30 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto gap-2">
+            <div class="text-[11px] text-slate-400 flex items-center gap-1.5 min-w-0">
+                <span class="w-2 h-2 rounded-full shrink-0 ${sellerDotColor} ${sellerPresence === 'online' ? 'animate-pulse' : ''}"></span>
+                <span class="truncate">By: <span class="font-semibold text-slate-600">${item.sellerName ? item.sellerName.split(' ')[0] : 'Homie'}</span></span>
+            </div>
+            <div class="shrink-0">
+                ${ownerActionsHtml}
+            </div>
+        </div>
+    `;
+
+    if (isOwner) {
+        const statusSelect = itemCard.querySelector('.listing-status-select');
+        if (statusSelect) {
+            statusSelect.addEventListener('change', (e) => {
+                updateListingStatus(listingId, e.target.value);
+            });
+        }
+    }
+
+    return itemCard;
+}
+
+function renderMarketplaceListings(listings) {
+    if (!marketplaceGrid) return;
+    marketplaceGrid.innerHTML = '';
+
+    const currentUid = auth.currentUser ? auth.currentUser.uid : null;
+    const filtered = listings.filter(({ item }) => listingMatchesMarketplaceFilter(item, activeMarketplaceFilter));
+
+    if (filtered.length === 0) {
+        marketplaceGrid.innerHTML = `
+            <div class="col-span-full py-16 text-center space-y-2">
+                <p class="text-sm font-bold text-slate-500">No listings in this category yet.</p>
+                <p class="text-xs text-slate-400">Try another filter or post the first item.</p>
+            </div>
+        `;
+        return;
+    }
+
+    filtered.forEach(({ item, listingId }) => {
+        marketplaceGrid.appendChild(createMarketplaceListingCard(item, listingId, currentUid));
+    });
+    lucide.createIcons();
 }
 
 // ============================================================
@@ -1008,6 +1165,58 @@ function listenToUserInboxChats() {
     });
 }
 
+function createChatEncryptionNotice() {
+    const notice = document.createElement('div');
+    notice.id = 'chatEncryptionNotice';
+    notice.className = 'flex justify-center w-full shrink-0 mb-3';
+    notice.setAttribute('role', 'note');
+    notice.innerHTML = `
+        <div class="max-w-[92%] sm:max-w-md text-center bg-amber-50 border border-amber-100/80 rounded-xl px-4 py-3 shadow-sm">
+            <div class="flex flex-col items-center gap-1.5">
+                <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100/80 text-amber-700">
+                    <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+                </span>
+                <p class="text-[10px] sm:text-[11px] leading-relaxed font-medium text-amber-900/75">
+                    Messages are secured with end-to-end encryption. Only people in this chat can read them.
+                </p>
+            </div>
+        </div>
+    `;
+    return notice;
+}
+
+function createChatMessageBubble(msg, currentUid) {
+    const isMe = msg.senderUid === currentUid;
+    const messageRowWrapper = document.createElement('div');
+    messageRowWrapper.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'}`;
+    const bubbleStyle = isMe
+        ? 'bg-[#d9fdd3] text-slate-900 rounded-l-xl rounded-tr-xl border border-[#c1e8bb]'
+        : 'bg-white text-slate-900 rounded-r-xl rounded-tl-xl border border-slate-200';
+    const timeString = msg.timestamp
+        ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '';
+    messageRowWrapper.innerHTML = `
+        <div class="max-w-[75%] px-3 py-1.5 text-xs shadow-sm ${bubbleStyle} relative">
+            <p class="whitespace-pre-wrap pb-1 leading-snug">${msg.text}</p>
+            <span class="block text-[9px] text-slate-400 text-right select-none mt-0.5">${timeString}</span>
+        </div>
+    `;
+    return messageRowWrapper;
+}
+
+function renderChatMessageStream(snapshot) {
+    chatMessageStream.innerHTML = '';
+    chatMessageStream.appendChild(createChatEncryptionNotice());
+
+    const currentUid = auth.currentUser ? auth.currentUser.uid : null;
+    snapshot.forEach(doc => {
+        chatMessageStream.appendChild(createChatMessageBubble(doc.data(), currentUid));
+    });
+
+    lucide.createIcons();
+    chatMessageStream.scrollTop = chatMessageStream.scrollHeight;
+}
+
 function loadActiveChatMessageStream(chatId, peerName, listingTitle, peerUid) {
     activeChatId = chatId;
     currentPeerUidTracker = peerUid;
@@ -1022,28 +1231,8 @@ function loadActiveChatMessageStream(chatId, peerName, listingTitle, peerUid) {
     clearUnreadBadgeStateMarker(chatId);
     if (chatMessagesUnsubscribe) chatMessagesUnsubscribe();
     chatMessagesUnsubscribe = db.collection('chats').doc(chatId).collection('messages')
-        .orderBy('timestamp', 'asc').onSnapshot(snapshot => {
-            chatMessageStream.innerHTML = "";
-            const currentUid = auth.currentUser ? auth.currentUser.uid : null;
-            snapshot.forEach(doc => {
-                const msg = doc.data();
-                const isMe = msg.senderUid === currentUid;
-                const messageRowWrapper = document.createElement('div');
-                messageRowWrapper.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'}`;
-                const bubbleStyle = isMe
-                    ? 'bg-[#d9fdd3] text-slate-900 rounded-l-xl rounded-tr-xl border border-[#c1e8bb]'
-                    : 'bg-white text-slate-900 rounded-r-xl rounded-tl-xl border border-slate-200';
-                const timeString = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-                messageRowWrapper.innerHTML = `
-                    <div class="max-w-[75%] px-3 py-1.5 text-xs shadow-sm ${bubbleStyle} relative">
-                        <p class="whitespace-pre-wrap pb-1 leading-snug">${msg.text}</p>
-                        <span class="block text-[9px] text-slate-400 text-right select-none mt-0.5">${timeString}</span>
-                    </div>
-                `;
-                chatMessageStream.appendChild(messageRowWrapper);
-            });
-            chatMessageStream.scrollTop = chatMessageStream.scrollHeight;
-        });
+        .orderBy('timestamp', 'asc')
+        .onSnapshot(renderChatMessageStream);
 }
 
 chatFormInputBar.addEventListener('submit', (e) => {
@@ -1071,8 +1260,237 @@ chatFormInputBar.addEventListener('submit', (e) => {
 const POSTS_COLLECTION = 'posts';
 const POST_CHAR_LIMIT = 280;
 let communityFeedUnsubscribe = null;
+let activeCommunityFeedScope = 'campus';
+let cachedUserInstitutionDomain = null;
 let activeThreadPostId = null;
 const threadReplyUnsubscribes = {};
+
+function extractInstitutionDomainFromEmail(email) {
+    if (!email || !email.includes('@')) return null;
+    const domain = email.split('@')[1].trim().toLowerCase();
+    return domain || null;
+}
+
+async function getUserInstitutionDomain(user) {
+    if (!user) return null;
+    if (user.institutionDomain) return user.institutionDomain;
+
+    try {
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (userDoc.exists && userDoc.data().institutionDomain) {
+            return userDoc.data().institutionDomain;
+        }
+    } catch (err) {
+        console.error('Could not load institution domain:', err);
+    }
+
+    return extractInstitutionDomainFromEmail(user.email);
+}
+
+async function ensureUserInstitutionDomain(user) {
+    const domain = await getUserInstitutionDomain(user);
+    if (!domain || !user) return domain;
+
+    try {
+        await db.collection('users').doc(user.uid).set({ institutionDomain: domain }, { merge: true });
+    } catch (err) {
+        console.error('Could not persist institution domain:', err);
+    }
+
+    return domain;
+}
+
+function stopCommunityFeedListener() {
+    if (communityFeedUnsubscribe) {
+        communityFeedUnsubscribe();
+        communityFeedUnsubscribe = null;
+    }
+}
+
+function setActiveCommunityScopeTab(scope) {
+    activeCommunityFeedScope = scope;
+    const isCampus = scope === 'campus';
+
+    [communityTabCampus, communityTabGlobal].forEach(tab => {
+        if (!tab) return;
+        const active = tab.dataset.communityScope === scope;
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        tab.classList.toggle('bg-white', active);
+        tab.classList.toggle('text-[var(--brand-dark)]', active);
+        tab.classList.toggle('shadow-sm', active);
+        tab.classList.toggle('border', active);
+        tab.classList.toggle('border-[#E2E8F0]', active);
+        tab.classList.toggle('text-[var(--text-muted)]', !active);
+        tab.classList.toggle('hover:text-[var(--text-main)]', !active);
+        tab.classList.toggle('hover:bg-white/70', !active);
+    });
+}
+
+function initCommunityScopeTabs() {
+    if (communityTabCampus) {
+        communityTabCampus.addEventListener('click', () => {
+            setActiveCommunityScopeTab('campus');
+            listenToCommunityHub();
+        });
+    }
+    if (communityTabGlobal) {
+        communityTabGlobal.addEventListener('click', () => {
+            setActiveCommunityScopeTab('global');
+            listenToCommunityHub();
+        });
+    }
+    setActiveCommunityScopeTab(activeCommunityFeedScope);
+}
+
+function buildCommunityPostsQuery(institutionDomain) {
+    let query = db.collection(POSTS_COLLECTION);
+    if (activeCommunityFeedScope === 'campus' && institutionDomain) {
+        query = query.where('institutionDomain', '==', institutionDomain);
+    }
+    return query.orderBy('createdAt', 'desc');
+}
+
+function renderCommunityEmptyState() {
+    if (!communityGrid) return;
+    const isCampus = activeCommunityFeedScope === 'campus';
+    const noDomain = isCampus && !cachedUserInstitutionDomain;
+
+    communityGrid.innerHTML = `
+        <div class="p-12 text-center">
+            <div class="w-14 h-14 rounded-full bg-[#E0F5F5] text-[var(--brand)] flex items-center justify-center mx-auto mb-3">
+                <i data-lucide="message-square" class="w-6 h-6"></i>
+            </div>
+            <p class="text-sm font-bold text-[var(--text-main)]">
+                ${noDomain ? 'Campus feed unavailable' : 'No posts yet'}
+            </p>
+            <p class="text-xs text-[var(--text-muted)] mt-1 max-w-xs mx-auto">
+                ${noDomain
+                    ? 'Sign in with a school email so we can match your campus domain.'
+                    : isCampus
+                        ? 'Be the first to share something with your campus.'
+                        : 'Be the first to share something with students everywhere.'}
+            </p>
+        </div>`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function renderCommunityPosts(snapshot) {
+    if (!communityGrid) return;
+    communityGrid.innerHTML = '';
+
+    if (activeCommunityFeedScope === 'campus' && !cachedUserInstitutionDomain) {
+        renderCommunityEmptyState();
+        return;
+    }
+
+    if (snapshot.empty) {
+        renderCommunityEmptyState();
+        return;
+    }
+
+    const currentUid = auth.currentUser ? auth.currentUser.uid : null;
+
+    snapshot.forEach(doc => {
+        const post = doc.data();
+        const postId = doc.id;
+        const likesArray = post.likes || [];
+        const replyCount = typeof post.replyCount === 'number' ? post.replyCount : 0;
+        const hasLiked = currentUid ? likesArray.includes(currentUid) : false;
+        const isOwner = currentUid === post.authorUid;
+        const displayName = post.isAnonymous ? 'Anonymous Homie' : (post.authorName || 'Homie');
+        const timeLabel = formatRelativeTime(post.createdAt);
+        const postTitleBlock = post.title
+            ? `<h3 class="font-extrabold text-sm text-[var(--text-main)] leading-snug mt-1">${escapeHtml(post.title)}</h3>`
+            : '';
+        const campusBadge = post.institutionDomain && activeCommunityFeedScope === 'global'
+            ? `<span class="text-[9px] font-bold uppercase tracking-wide text-[var(--brand-dark)] bg-[#E0F5F5] px-2 py-0.5 rounded-full">${escapeHtml(post.institutionDomain)}</span>`
+            : '';
+        const attachmentBlock = post.attachmentUrl
+            ? `<img src="${escapeHtml(post.attachmentUrl)}" alt="" class="mt-3 rounded-2xl border border-[#E2E8F0] max-h-80 w-full object-cover bg-[var(--bg)]" loading="lazy">`
+            : '';
+
+        const postCard = document.createElement('article');
+        postCard.className = 'p-4 hover:bg-[var(--bg)]/60 transition-colors';
+        postCard.setAttribute('data-post-id', postId);
+
+        postCard.innerHTML = `
+            <div class="flex gap-3">
+                ${buildTweetAvatarMarkup(post, displayName)}
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+                            <span class="font-extrabold text-sm text-[var(--text-main)] truncate">${escapeHtml(displayName)}</span>
+                            ${!post.isAnonymous && post.authorUid ? `<span class="text-[10px] text-[var(--text-muted)]">· @homie</span>` : ''}
+                            <span class="text-[10px] text-[var(--text-muted)]">· ${timeLabel}</span>
+                            ${campusBadge}
+                        </div>
+                        ${isOwner ? `<button type="button" onclick="event.stopPropagation(); deleteCommunityPost('${postId}')" class="text-[var(--text-muted)] hover:text-[var(--cta)] transition p-1" aria-label="Delete post"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
+                    </div>
+                    ${postTitleBlock}
+                    <p class="text-sm text-[var(--text-main)] leading-relaxed mt-1 whitespace-pre-wrap break-words">${escapeHtml(post.content)}</p>
+                    ${attachmentBlock}
+                    <div class="flex items-center gap-6 mt-3 pt-2 max-w-xs">
+                        <button
+                            type="button"
+                            id="likeBtn-${postId}"
+                            onclick="event.stopPropagation(); togglePostLike('${postId}', '${hasLiked}')"
+                            class="group flex items-center gap-1.5 text-xs font-bold transition ${hasLiked ? 'text-[var(--cta)]' : 'text-[var(--text-muted)]'} hover:text-[var(--cta)]"
+                        >
+                            <span class="p-2 rounded-full group-hover:bg-[#FFE8E8] transition flex items-center justify-center">
+                                <i data-lucide="heart" class="w-4 h-4 ${hasLiked ? 'fill-current' : ''}"></i>
+                            </span>
+                            <span id="likeCount-${postId}" class="tabular-nums">${likesArray.length}</span>
+                        </button>
+                        <button
+                            type="button"
+                            onclick="event.stopPropagation(); togglePostThread('${postId}')"
+                            class="group flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--brand)] transition"
+                        >
+                            <span class="p-2 rounded-full group-hover:bg-[#E0F5F5] transition flex items-center justify-center">
+                                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                            </span>
+                            <span id="replyCount-${postId}" class="tabular-nums">${replyCount}</span>
+                        </button>
+                    </div>
+                    <div id="threadPanel-${postId}" class="hidden mt-3 pt-3 border-t border-[#E2E8F0] space-y-3">
+                        <div id="threadReplies-${postId}" class="space-y-0 max-h-64 overflow-y-auto pl-1"></div>
+                        <div class="flex gap-2 items-end pt-1">
+                            <input
+                                type="text"
+                                id="threadReplyInput-${postId}"
+                                maxlength="280"
+                                placeholder="Post your reply..."
+                                class="flex-1 rounded-full px-4 py-2 text-xs border border-[#E2E8F0] bg-[var(--bg)] text-[var(--text-main)] focus:outline-none focus:border-[var(--brand)]"
+                            />
+                            <button
+                                type="button"
+                                onclick="event.stopPropagation(); submitThreadReply('${postId}')"
+                                class="text-white font-bold text-xs px-4 py-2 rounded-full shadow-sm bg-[var(--brand)] hover:bg-[var(--brand-dark)] transition"
+                            >
+                                Reply
+                            </button>
+                        </div>
+                        <label class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide cursor-pointer text-[var(--text-muted)]">
+                            <input type="checkbox" id="threadReplyAnonymous-${postId}" class="rounded h-3.5 w-3.5 accent-[var(--brand)]">
+                            Reply anonymously
+                        </label>
+                    </div>
+                </div>
+            </div>
+        `;
+        communityGrid.appendChild(postCard);
+    });
+
+    if (activeThreadPostId) {
+        const panel = document.getElementById(`threadPanel-${activeThreadPostId}`);
+        if (panel) {
+            panel.classList.remove('hidden');
+            listenToPostReplies(activeThreadPostId);
+        }
+    }
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
 
 function escapeHtml(str) {
     if (!str) return '';
@@ -1107,13 +1525,14 @@ function formatRelativeTime(createdAt) {
 function updatePostComposerControls() {
     if (!postContent || !communitySubmitBtn) return;
     const len = postContent.value.length;
+    const titleLen = postTitle ? postTitle.value.trim().length : 0;
     if (postCharCounter) {
         postCharCounter.innerText = `${len}/${POST_CHAR_LIMIT}`;
         postCharCounter.className = len > POST_CHAR_LIMIT
             ? 'text-[10px] font-bold animate-pulse text-[var(--cta)]'
             : 'text-[10px] font-semibold text-[var(--text-muted)]';
     }
-    communitySubmitBtn.disabled = len === 0 || len > POST_CHAR_LIMIT;
+    communitySubmitBtn.disabled = len === 0 || len > POST_CHAR_LIMIT || titleLen === 0;
 }
 
 function updateCommunityComposerAvatar() {
@@ -1292,119 +1711,31 @@ window.deleteCommunityPost = function(postId) {
 
 function listenToCommunityHub() {
     if (!communityGrid) return;
-    if (communityFeedUnsubscribe) communityFeedUnsubscribe();
+    stopCommunityFeedListener();
 
-    communityFeedUnsubscribe = db.collection(POSTS_COLLECTION).orderBy('createdAt', 'desc').onSnapshot(snapshot => {
-        if (!communityGrid) return;
-        communityGrid.innerHTML = '';
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+        renderCommunityEmptyState();
+        return;
+    }
 
-        if (snapshot.empty) {
-            communityGrid.innerHTML = `
-                <div class="p-12 text-center">
-                    <div class="w-14 h-14 rounded-full bg-[#E0F5F5] text-[var(--brand)] flex items-center justify-center mx-auto mb-3">
-                        <i data-lucide="message-square" class="w-6 h-6"></i>
-                    </div>
-                    <p class="text-sm font-bold text-[var(--text-main)]">No posts yet</p>
-                    <p class="text-xs text-[var(--text-muted)] mt-1">Be the first to share something with campus.</p>
-                </div>`;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-            return;
-        }
+    getUserInstitutionDomain(currentUser).then(domain => {
+        cachedUserInstitutionDomain = domain;
+        const postsQuery = buildCommunityPostsQuery(domain);
 
-        const currentUid = auth.currentUser ? auth.currentUser.uid : null;
-
-        snapshot.forEach(doc => {
-            const post = doc.data();
-            const postId = doc.id;
-            const likesArray = post.likes || [];
-            const replyCount = typeof post.replyCount === 'number' ? post.replyCount : 0;
-            const hasLiked = currentUid ? likesArray.includes(currentUid) : false;
-            const isOwner = currentUid === post.authorUid;
-            const displayName = post.isAnonymous ? 'Anonymous Homie' : (post.authorName || 'Homie');
-            const timeLabel = formatRelativeTime(post.createdAt);
-            const attachmentBlock = post.attachmentUrl
-                ? `<img src="${escapeHtml(post.attachmentUrl)}" alt="" class="mt-3 rounded-2xl border border-[#E2E8F0] max-h-80 w-full object-cover bg-[var(--bg)]" loading="lazy">`
-                : '';
-
-            const postCard = document.createElement('article');
-            postCard.className = 'p-4 hover:bg-[var(--bg)]/60 transition-colors';
-            postCard.setAttribute('data-post-id', postId);
-
-            postCard.innerHTML = `
-                <div class="flex gap-3">
-                    ${buildTweetAvatarMarkup(post, displayName)}
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="flex items-center gap-1.5 flex-wrap min-w-0">
-                                <span class="font-extrabold text-sm text-[var(--text-main)] truncate">${escapeHtml(displayName)}</span>
-                                ${!post.isAnonymous && post.authorUid ? `<span class="text-[10px] text-[var(--text-muted)]">· @homie</span>` : ''}
-                                <span class="text-[10px] text-[var(--text-muted)]">· ${timeLabel}</span>
-                            </div>
-                            ${isOwner ? `<button type="button" onclick="event.stopPropagation(); deleteCommunityPost('${postId}')" class="text-[var(--text-muted)] hover:text-[var(--cta)] transition p-1" aria-label="Delete post"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
-                        </div>
-                        <p class="text-sm text-[var(--text-main)] leading-relaxed mt-1 whitespace-pre-wrap break-words">${escapeHtml(post.content)}</p>
-                        ${attachmentBlock}
-                        <div class="flex items-center gap-6 mt-3 pt-2 max-w-xs">
-                            <button
-                                type="button"
-                                id="likeBtn-${postId}"
-                                onclick="event.stopPropagation(); togglePostLike('${postId}', '${hasLiked}')"
-                                class="group flex items-center gap-1.5 text-xs font-bold transition ${hasLiked ? 'text-[var(--cta)]' : 'text-[var(--text-muted)]'} hover:text-[var(--cta)]"
-                            >
-                                <span class="p-2 rounded-full group-hover:bg-[#FFE8E8] transition flex items-center justify-center">
-                                    <i data-lucide="heart" class="w-4 h-4 ${hasLiked ? 'fill-current' : ''}"></i>
-                                </span>
-                                <span id="likeCount-${postId}" class="tabular-nums">${likesArray.length}</span>
-                            </button>
-                            <button
-                                type="button"
-                                onclick="event.stopPropagation(); togglePostThread('${postId}')"
-                                class="group flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--brand)] transition"
-                            >
-                                <span class="p-2 rounded-full group-hover:bg-[#E0F5F5] transition flex items-center justify-center">
-                                    <i data-lucide="message-circle" class="w-4 h-4"></i>
-                                </span>
-                                <span id="replyCount-${postId}" class="tabular-nums">${replyCount}</span>
-                            </button>
-                        </div>
-                        <div id="threadPanel-${postId}" class="hidden mt-3 pt-3 border-t border-[#E2E8F0] space-y-3">
-                            <div id="threadReplies-${postId}" class="space-y-0 max-h-64 overflow-y-auto pl-1"></div>
-                            <div class="flex gap-2 items-end pt-1">
-                                <input
-                                    type="text"
-                                    id="threadReplyInput-${postId}"
-                                    maxlength="280"
-                                    placeholder="Post your reply..."
-                                    class="flex-1 rounded-full px-4 py-2 text-xs border border-[#E2E8F0] bg-[var(--bg)] text-[var(--text-main)] focus:outline-none focus:border-[var(--brand)]"
-                                />
-                                <button
-                                    type="button"
-                                    onclick="event.stopPropagation(); submitThreadReply('${postId}')"
-                                    class="text-white font-bold text-xs px-4 py-2 rounded-full shadow-sm bg-[var(--brand)] hover:bg-[var(--brand-dark)] transition"
-                                >
-                                    Reply
-                                </button>
-                            </div>
-                            <label class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide cursor-pointer text-[var(--text-muted)]">
-                                <input type="checkbox" id="threadReplyAnonymous-${postId}" class="rounded h-3.5 w-3.5 accent-[var(--brand)]">
-                                Reply anonymously
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            `;
-            communityGrid.appendChild(postCard);
-        });
-
-        if (activeThreadPostId) {
-            const panel = document.getElementById(`threadPanel-${activeThreadPostId}`);
-            if (panel) {
-                panel.classList.remove('hidden');
-                listenToPostReplies(activeThreadPostId);
+        communityFeedUnsubscribe = postsQuery.onSnapshot(
+            snapshot => renderCommunityPosts(snapshot),
+            err => {
+                console.error('Community feed listener error:', err);
+                if (communityGrid) {
+                    communityGrid.innerHTML = `
+                        <div class="p-10 text-center">
+                            <p class="text-sm font-bold text-[var(--cta)]">Could not load posts</p>
+                            <p class="text-xs text-[var(--text-muted)] mt-1">If this is your campus tab, ensure a Firestore composite index exists for institutionDomain + createdAt.</p>
+                        </div>`;
+                }
             }
-        }
-
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+        );
     });
 }
 
@@ -1413,21 +1744,34 @@ if (communityForm) {
         e.preventDefault();
         const currentUser = auth.currentUser;
         if (!currentUser) return alert('Sign in to post!');
-        if (!postContent) return;
+        if (!postContent || !postTitle) return;
 
+        const title = postTitle.value.trim();
         const content = postContent.value.trim();
+        if (!title) return alert('Add a title for your post.');
         if (!content || content.length > POST_CHAR_LIMIT) return;
 
         const isAnonymous = postAnonymous ? postAnonymous.checked : false;
         const attachmentUrl = postAttachmentUrl ? postAttachmentUrl.value.trim() : '';
 
-        db.collection('users').doc(currentUser.uid).get().then(userDoc => {
+        Promise.all([
+            db.collection('users').doc(currentUser.uid).get(),
+            getUserInstitutionDomain(currentUser)
+        ]).then(([userDoc, institutionDomain]) => {
+            if (!institutionDomain) {
+                alert('We could not detect your campus email domain. Use a school email to post.');
+                return null;
+            }
+
+            cachedUserInstitutionDomain = institutionDomain;
             const profile = userDoc.exists ? userDoc.data() : {};
             const authorPhoto = profile.photoUrl || currentUser.photoURL || '';
             const authorName = profile.fullName || currentUser.displayName || 'Homie';
 
             const postPayload = {
+                title: title,
                 content: content,
+                institutionDomain: institutionDomain,
                 isAnonymous: isAnonymous,
                 authorUid: currentUser.uid,
                 authorName: isAnonymous ? 'Anonymous Homie' : authorName,
@@ -1439,7 +1783,8 @@ if (communityForm) {
             if (attachmentUrl) postPayload.attachmentUrl = attachmentUrl;
 
             return db.collection(POSTS_COLLECTION).add(postPayload);
-        }).then(() => {
+        }).then(result => {
+            if (!result) return;
             communityForm.reset();
             updatePostComposerControls();
             if (postAnonymous) postAnonymous.checked = false;
@@ -1451,57 +1796,60 @@ if (postContent) {
     postContent.addEventListener('input', updatePostComposerControls);
     updatePostComposerControls();
 }
+if (postTitle) {
+    postTitle.addEventListener('input', updatePostComposerControls);
+}
+
+initCommunityScopeTabs();
 
 // ============================================================
 // --- MARKETPLACE ---
 // ============================================================
 
 marketForm.addEventListener('submit', (e) => {
-    e.preventDefault(); const currentUser = auth.currentUser; if (!currentUser) return;
-    db.collection('listings').add({ sellerUid: currentUser.uid, sellerName: currentUser.displayName || "Homie", sellerEmail: currentUser.email, title: document.getElementById('itemTitle').value, category: document.getElementById('itemCategory').value, price: document.getElementById('itemPrice').value, description: document.getElementById('itemDescription').value, createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(() => { marketForm.reset(); marketModal.classList.add('hidden'); });
+    e.preventDefault();
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    db.collection('listings').add({
+        sellerUid: currentUser.uid,
+        sellerName: currentUser.displayName || 'Homie',
+        sellerEmail: currentUser.email,
+        title: document.getElementById('itemTitle').value,
+        category: document.getElementById('itemCategory').value,
+        price: document.getElementById('itemPrice').value,
+        description: document.getElementById('itemDescription').value,
+        status: 'available',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        marketForm.reset();
+        marketModal.classList.add('hidden');
+    });
 });
 
 function listenToMarketplace() {
-    db.collection('listings').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
-        marketplaceGrid.innerHTML = "";
-        if (snapshot.empty) return;
-        const currentUid = auth.currentUser ? auth.currentUser.uid : null;
+    if (marketplaceUnsubscribe) marketplaceUnsubscribe();
+    marketplaceUnsubscribe = db.collection('listings').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+        marketplaceListingsCache = [];
         snapshot.forEach(doc => {
-            const item = doc.data(); const listingId = doc.id;
-            const isOwner = currentUid === item.sellerUid;
-            const itemCard = document.createElement('div');
-            itemCard.className = "bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between";
-            const sellerPresence = userOnlineStatuses[item.sellerUid] || 'offline';
-            const sellerDotColor = sellerPresence === 'online' ? 'bg-green-500' : 'bg-slate-300';
-            itemCard.innerHTML = `
-                <div>
-                    <div class="flex justify-between items-center mb-3">
-                        <span class="${getCategoryBadgeStyle(item.category)} text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md">${item.category}</span>
-                        <span class="text-xs font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">${item.price}</span>
-                    </div>
-                    <h4 class="font-extrabold text-slate-900 text-sm mb-1.5 leading-snug tracking-tight">${item.title}</h4>
-                    <p class="text-xs text-slate-500 line-clamp-2 mb-4 bg-slate-50 border border-slate-100 p-2 rounded-xl italic">"${item.description}"</p>
-                </div>
-                <div class="pt-3 border-t border-slate-100 flex items-center justify-between mt-auto gap-2">
-                    <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
-                        <span class="w-2 h-2 rounded-full ${sellerDotColor} ${sellerPresence === 'online' ? 'animate-pulse' : ''}"></span>
-                        By: <span class="font-semibold text-slate-600">${item.sellerName ? item.sellerName.split(' ')[0] : 'Homie'}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        ${isOwner
-                            ? `<button onclick="deleteListing('${listingId}')" class="bg-red-50 text-red-600 font-bold text-[11px] px-3 py-2 rounded-xl flex items-center gap-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete</button>`
-                            : `<button onclick="window.openMarketplaceChat('${item.sellerUid}', '${item.sellerName}', '${item.title.replace(/'/g, "\\'")}')" class="bg-blue-600 text-white font-bold text-[11px] px-3 py-2 rounded-xl shadow-sm flex items-center gap-1"><i data-lucide="message-square" class="w-3.5 h-3.5"></i> Chat</button>`
-                        }
-                    </div>
-                </div>
-            `;
-            marketplaceGrid.appendChild(itemCard);
+            marketplaceListingsCache.push({ listingId: doc.id, item: doc.data() });
         });
-        lucide.createIcons();
+        renderMarketplaceListings(marketplaceListingsCache);
     });
 }
 
-window.deleteListing = function(id) { if (confirm("Delete listing?")) db.collection('listings').doc(id).delete(); };
+window.updateListingStatus = function(listingId, status) {
+    const currentUser = auth.currentUser;
+    if (!currentUser || !LISTING_STATUS_OPTIONS.includes(status)) return;
+    const cached = marketplaceListingsCache.find(entry => entry.listingId === listingId);
+    if (!cached || cached.item.sellerUid !== currentUser.uid) return;
+    db.collection('listings').doc(listingId).update({ status });
+};
+
+window.deleteListing = function(id) {
+    if (confirm('Delete listing?')) db.collection('listings').doc(id).delete();
+};
+
+initMarketplaceFilterChips();
 
 // ============================================================
 // --- RUN CORE SERVICES ---
@@ -1530,6 +1878,8 @@ listenToStudentNetwork();
 //       && request.resource.data.authorUid == request.auth.uid;
 //   }
 // }
+// Composite index required for campus-scoped feed:
+// Collection: posts — Fields: institutionDomain (Ascending), createdAt (Descending)
 // Note: Likes require a rule allowing authenticated users to update
 // only the `likes` field on any post (or use Cloud Functions).
 // ============================================================

@@ -110,33 +110,76 @@
             <div id="networkGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
-        <section id="viewCommunity" class="space-y-6 hidden max-w-2xl mx-auto w-full">
+        <section id="viewCommunity" class="space-y-5 hidden max-w-2xl mx-auto w-full">
             <div>
                 <h2 class="text-2xl font-bold font-heading tracking-tight text-[var(--brand-dark)]">Community Feed</h2>
-                <p class="text-xs mt-0.5 text-[var(--text-muted)]">Post publicly or anonymously — like, reply, and thread with your campus.</p>
+                <p class="text-xs mt-0.5 text-[var(--text-muted)]">Share with your campus or browse posts from students everywhere.</p>
             </div>
 
-            <div id="communityPostBox" class="bg-[var(--surface)] rounded-2xl border border-[#E2E8F0] p-5 shadow-sm hidden">
-                <form id="communityForm" class="space-y-0">
+            <div
+                id="communityScopeTabs"
+                class="sticky top-[4.25rem] z-30 -mx-1 px-1 py-2 bg-[var(--bg)]/95 backdrop-blur-md border-b border-[#E2E8F0]/80"
+                role="tablist"
+                aria-label="Community feed scope"
+            >
+                <div class="flex gap-2 p-1 bg-gray-50 rounded-2xl border border-[#E2E8F0] shadow-sm">
+                    <button
+                        type="button"
+                        id="communityTabCampus"
+                        data-community-scope="campus"
+                        role="tab"
+                        aria-selected="true"
+                        class="community-scope-tab flex-1 text-[11px] font-bold uppercase tracking-wide py-2.5 px-3 rounded-xl transition focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/30 bg-white text-[var(--brand-dark)] shadow-sm border border-[#E2E8F0]"
+                    >
+                        📍 My Campus
+                    </button>
+                    <button
+                        type="button"
+                        id="communityTabGlobal"
+                        data-community-scope="global"
+                        role="tab"
+                        aria-selected="false"
+                        class="community-scope-tab flex-1 text-[11px] font-bold uppercase tracking-wide py-2.5 px-3 rounded-xl transition focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/30 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/70"
+                    >
+                        🌐 All Schools
+                    </button>
+                </div>
+            </div>
+
+            <div id="communityPostBox" class="hidden">
+                <form id="communityForm" class="bg-gray-50 rounded-2xl border border-[#E2E8F0] p-5 shadow-sm space-y-4">
                     <div class="flex gap-4 items-start">
                         <div id="composerAvatar" class="w-11 h-11 rounded-full flex-shrink-0 bg-[var(--brand)] text-white font-bold flex items-center justify-center text-sm uppercase shadow-sm overflow-hidden border-2 border-white ring-2 ring-[#E0F5F5]">
                             H
                         </div>
                         <div class="flex-1 min-w-0 space-y-3">
-                            <textarea
-                                id="postContent"
-                                maxlength="280"
-                                placeholder="What's happening on campus?"
-                                rows="3"
-                                class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none transition resize-none border border-[#E2E8F0] bg-[var(--bg)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:border-[var(--brand)] focus:bg-[var(--surface)]"
-                            ></textarea>
+                            <div class="bg-white rounded-2xl border border-[#E2E8F0] px-4 py-3 shadow-sm focus-within:border-[var(--brand)] focus-within:ring-2 focus-within:ring-[var(--brand)]/15 transition">
+                                <label for="postTitle" class="sr-only">Post title</label>
+                                <input
+                                    type="text"
+                                    id="postTitle"
+                                    maxlength="120"
+                                    placeholder="Post title"
+                                    class="w-full bg-transparent text-sm font-bold text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none"
+                                >
+                            </div>
+                            <div class="bg-white rounded-2xl border border-[#E2E8F0] px-4 py-3 shadow-sm focus-within:border-[var(--brand)] focus-within:ring-2 focus-within:ring-[var(--brand)]/15 transition">
+                                <label for="postContent" class="sr-only">Post body</label>
+                                <textarea
+                                    id="postContent"
+                                    maxlength="280"
+                                    placeholder="What's happening on campus?"
+                                    rows="4"
+                                    class="w-full bg-transparent text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none resize-none leading-relaxed"
+                                ></textarea>
+                            </div>
                             <input
                                 type="url"
                                 id="postAttachmentUrl"
-                                placeholder="Image/GIF URL Attachment (optional)"
-                                class="w-full rounded-xl px-4 py-2 text-xs focus:outline-none transition border border-[#E2E8F0] bg-[var(--bg)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:border-[var(--brand)]"
+                                placeholder="Image/GIF URL attachment (optional)"
+                                class="w-full rounded-2xl px-4 py-2.5 text-xs border border-[#E2E8F0] bg-white text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/15 transition"
                             />
-                            <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+                            <div class="flex flex-wrap items-center justify-between gap-3 pt-0.5">
                                 <div class="flex flex-wrap items-center gap-4">
                                     <label class="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide cursor-pointer select-none text-[var(--text-muted)]">
                                         <input type="checkbox" id="postAnonymous" class="rounded h-4 w-4 accent-[var(--brand)]">
@@ -171,6 +214,15 @@
                     <i data-lucide="plus-circle" class="w-4 h-4"></i> Post Item
                 </button>
             </div>
+
+            <div id="marketplaceFilterChips" class="flex flex-nowrap gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none" role="toolbar" aria-label="Filter marketplace by category">
+                <button type="button" data-market-filter="All" class="market-filter-chip shrink-0 bg-blue-600 text-white border border-blue-600 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50">All</button>
+                <button type="button" data-market-filter="Textbooks" class="market-filter-chip shrink-0 bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-700 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-400/50">Textbooks</button>
+                <button type="button" data-market-filter="Dorm Decor" class="market-filter-chip shrink-0 bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-700 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-400/50">Dorm Decor</button>
+                <button type="button" data-market-filter="Electronics" class="market-filter-chip shrink-0 bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-700 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-400/50">Electronics</button>
+                <button type="button" data-market-filter="Clothing" class="market-filter-chip shrink-0 bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-700 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-400/50">Clothing</button>
+            </div>
+
             <div id="marketplaceGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
@@ -411,10 +463,10 @@
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Category</label>
                     <select id="itemCategory" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white">
-                        <option value="Skill Trade">Skill Trade / Tutoring</option>
-                        <option value="Books & Notes">Books & Notes</option>
+                        <option value="Textbooks">Textbooks</option>
+                        <option value="Dorm Decor">Dorm Decor</option>
                         <option value="Electronics">Electronics</option>
-                        <option value="Other">Other</option>
+                        <option value="Clothing">Clothing</option>
                     </select>
                 </div>
                 <div>
@@ -559,20 +611,23 @@
             configureCounter("hubBio", "hubBioCounter");
 
             const postContentEl = document.getElementById("postContent");
+            const postTitleEl = document.getElementById("postTitle");
             const postCharCounterEl = document.getElementById("postCharCounter");
             const communitySubmitBtnEl = document.getElementById("communitySubmitBtn");
             if (postContentEl && postCharCounterEl && communitySubmitBtnEl) {
                 const syncPostComposer = () => {
                     const len = postContentEl.value.length;
+                    const titleLen = postTitleEl ? postTitleEl.value.trim().length : 0;
                     postCharCounterEl.innerText = `${len}/280`;
                     if (len > 280) {
                         postCharCounterEl.className = "text-[10px] font-bold animate-pulse text-[var(--cta)]";
                     } else {
                         postCharCounterEl.className = "text-[10px] font-semibold text-[var(--text-muted)]";
                     }
-                    communitySubmitBtnEl.disabled = len === 0 || len > 280;
+                    communitySubmitBtnEl.disabled = len === 0 || len > 280 || titleLen === 0;
                 };
                 postContentEl.addEventListener("input", syncPostComposer);
+                if (postTitleEl) postTitleEl.addEventListener("input", syncPostComposer);
                 syncPostComposer();
             }
         });
