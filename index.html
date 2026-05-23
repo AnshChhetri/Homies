@@ -41,6 +41,7 @@
                 <i data-lucide="layout-list" class="w-4 h-4"></i> Network Feed
             </a>
             <button id="navCommunity" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none"><i data-lucide="message-square" class="w-4 h-4"></i> Feed</button>
+            <button id="navGroups" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none"><i data-lucide="circle-dot" class="w-4 h-4"></i> Circles</button>
             <button id="navMarketplace" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none"><i data-lucide="shopping-bag" class="w-4 h-4"></i> Market</button>
             
             <button id="navMessages" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none hidden relative">
@@ -204,6 +205,10 @@
             <div id="communityGrid" class="flex flex-col border border-[#E2E8F0] rounded-2xl overflow-hidden bg-[var(--surface)] shadow-sm divide-y divide-[#E2E8F0]"></div>
         </section>
 
+        <section id="viewGroups" class="hidden space-y-8">
+            <div id="groupsDashboardRoot" class="space-y-8"></div>
+        </section>
+
         <section id="viewMarketplace" class="space-y-8 hidden">
             <div class="flex justify-between items-center">
                 <div>
@@ -217,10 +222,10 @@
 
             <div id="marketplaceFilterChips" class="flex flex-nowrap gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none" role="toolbar" aria-label="Filter marketplace by category">
                 <button type="button" data-market-filter="All" class="market-filter-chip shrink-0 bg-blue-600 text-white border border-blue-600 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50">All</button>
-                <button type="button" data-market-filter="Textbooks" class="market-filter-chip shrink-0 bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-700 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-400/50">Textbooks</button>
-                <button type="button" data-market-filter="Dorm Decor" class="market-filter-chip shrink-0 bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-700 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-400/50">Dorm Decor</button>
-                <button type="button" data-market-filter="Electronics" class="market-filter-chip shrink-0 bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-700 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-400/50">Electronics</button>
-                <button type="button" data-market-filter="Clothing" class="market-filter-chip shrink-0 bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-700 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-400/50">Clothing</button>
+                <button type="button" data-market-filter="TEXTBOOKS" class="market-filter-chip shrink-0 bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-700 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-400/50">Textbooks</button>
+                <button type="button" data-market-filter="DORM DECOR" class="market-filter-chip shrink-0 bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-700 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-400/50">Dorm Decor</button>
+                <button type="button" data-market-filter="ELECTRONICS" class="market-filter-chip shrink-0 bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-700 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-400/50">Electronics</button>
+                <button type="button" data-market-filter="CLOTHING" class="market-filter-chip shrink-0 bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-700 text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-400/50">Clothing</button>
             </div>
 
             <div id="marketplaceGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
@@ -461,13 +466,8 @@
                     <input type="text" id="itemTitle" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Category</label>
-                    <select id="itemCategory" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white">
-                        <option value="Textbooks">Textbooks</option>
-                        <option value="Dorm Decor">Dorm Decor</option>
-                        <option value="Electronics">Electronics</option>
-                        <option value="Clothing">Clothing</option>
-                    </select>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Category tag</label>
+                    <input type="text" id="itemCategory" required placeholder="e.g. Python tutoring, Textbooks, Dorm decor" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Price / Deal Type</label>
@@ -637,6 +637,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="groupsController.js"></script>
+    <script src="groupsView.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

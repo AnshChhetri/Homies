@@ -45,6 +45,7 @@ const viewHome = document.getElementById('viewHome');
 const viewNetwork = document.getElementById('viewNetwork');
 const viewCommunity = document.getElementById('viewCommunity');
 const viewMarketplace = document.getElementById('viewMarketplace');
+const viewGroups = document.getElementById('viewGroups');
 const viewMyProfile = document.getElementById('viewMyProfile');
 const viewMessages = document.getElementById('viewMessages');
 
@@ -53,6 +54,7 @@ const navHome = document.getElementById('navHome');
 const navNetwork = document.getElementById('navNetwork');
 const navCommunity = document.getElementById('navCommunity');
 const navMarketplace = document.getElementById('navMarketplace');
+const navGroups = document.getElementById('navGroups');
 const navMyProfile = document.getElementById('navMyProfile');
 const navMessages = document.getElementById('navMessages');
 const navLogo = document.getElementById('navLogo');
@@ -94,8 +96,46 @@ const closeMarketModalBtn = document.getElementById('closeMarketModalBtn');
 const marketForm = document.getElementById('marketForm');
 const marketplaceGrid = document.getElementById('marketplaceGrid');
 const marketplaceFilterChips = document.getElementById('marketplaceFilterChips');
+const groupsDashboardRoot = document.getElementById('groupsDashboardRoot');
 
 const LISTING_STATUS_OPTIONS = ['available', 'sold', 'reserved'];
+
+const MARKETPLACE_PARENT = {
+    TEXTBOOKS: 'TEXTBOOKS',
+    DORM_DECOR: 'DORM DECOR',
+    ELECTRONICS: 'ELECTRONICS',
+    CLOTHING: 'CLOTHING'
+};
+
+const MARKETPLACE_CATEGORY_KEYWORDS = {
+    [MARKETPLACE_PARENT.TEXTBOOKS]: [
+        'books & notes', 'study guide', 'course pack', 'textbook', 'textbooks',
+        'workbook', 'syllabus', 'academic', 'reading', 'manual', 'binder', 'notes', 'book', 'books'
+    ],
+    [MARKETPLACE_PARENT.DORM_DECOR]: [
+        'mini fridge', 'dorm decor', 'dorm room', 'furniture', 'bedding', 'decoration',
+        'decor', 'storage', 'apartment', 'bedroom', 'poster', 'sheets', 'lamp', 'desk',
+        'chair', 'rug', 'dorm', 'room'
+    ],
+    [MARKETPLACE_PARENT.ELECTRONICS]: [
+        'headphones', 'electronics', 'electronic', 'macbook', 'laptop', 'tablet',
+        'keyboard', 'monitor', 'charger', 'console', 'speaker', 'iphone', 'ipad',
+        'gaming', 'cable', 'mouse', 'phone', 'tv'
+    ],
+    [MARKETPLACE_PARENT.CLOTHING]: [
+        'sneakers', 'clothing', 'apparel', 'hoodie', 'jacket', 'fashion', 'thrift',
+        'clothes', 'shirt', 'pants', 'jeans', 'dress', 'shoes', 'wear'
+    ]
+};
+
+const MARKETPLACE_LEGACY_CATEGORY_MAP = {
+    textbooks: MARKETPLACE_PARENT.TEXTBOOKS,
+    'books & notes': MARKETPLACE_PARENT.TEXTBOOKS,
+    'dorm decor': MARKETPLACE_PARENT.DORM_DECOR,
+    electronics: MARKETPLACE_PARENT.ELECTRONICS,
+    clothing: MARKETPLACE_PARENT.CLOTHING
+};
+
 let activeMarketplaceFilter = 'All';
 let marketplaceListingsCache = [];
 let marketplaceUnsubscribe = null;
@@ -294,14 +334,17 @@ window.handleStarClick = async function(uid, val) {
 // ============================================================
 
 function switchView(activeViewName) {
+    if (typeof GroupsView !== 'undefined') GroupsView.deactivate();
+
     viewHome.classList.add('hidden');
     viewNetwork.classList.add('hidden');
     viewCommunity.classList.add('hidden');
     viewMarketplace.classList.add('hidden');
+    viewGroups.classList.add('hidden');
     viewMyProfile.classList.add('hidden');
     viewMessages.classList.add('hidden');
 
-    const buttons = [navHome, navNetwork, navCommunity, navMarketplace, navMyProfile, navMessages];
+    const buttons = [navHome, navNetwork, navCommunity, navGroups, navMarketplace, navMyProfile, navMessages];
     buttons.forEach(btn => {
         btn.className = "text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none relative";
     });
@@ -315,6 +358,10 @@ function switchView(activeViewName) {
     } else if (activeViewName === 'community') {
         viewCommunity.classList.remove('hidden');
         navCommunity.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none relative";
+    } else if (activeViewName === 'groups') {
+        viewGroups.classList.remove('hidden');
+        navGroups.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none relative";
+        if (typeof GroupsView !== 'undefined') GroupsView.activate();
     } else if (activeViewName === 'marketplace') {
         viewMarketplace.classList.remove('hidden');
         navMarketplace.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none relative";
@@ -333,6 +380,7 @@ function switchView(activeViewName) {
 navHome.addEventListener('click', () => switchView('home'));
 navNetwork.addEventListener('click', () => switchView('network'));
 navCommunity.addEventListener('click', () => switchView('community'));
+navGroups.addEventListener('click', () => switchView('groups'));
 navMarketplace.addEventListener('click', () => switchView('marketplace'));
 navMyProfile.addEventListener('click', () => switchView('myprofile'));
 navMessages.addEventListener('click', () => switchView('messages'));
@@ -630,6 +678,9 @@ auth.onAuthStateChanged(user => {
         ensureUserInstitutionDomain(user).then(domain => {
             cachedUserInstitutionDomain = domain;
             listenToCommunityHub();
+            if (typeof GroupsView !== 'undefined') {
+                GroupsView.notifyDomainCache(domain);
+            }
         });
         listenToUserInboxChats();
         initializeGlobalUnreadBadgeListener(user.uid);
@@ -648,6 +699,7 @@ auth.onAuthStateChanged(user => {
         if (globalUnreadUnsubscribe) globalUnreadUnsubscribe();
         if (presenceUnsubscribe) presenceUnsubscribe();
         stopCommunityFeedListener();
+        if (typeof GroupsView !== 'undefined') GroupsView.deactivate();
         cachedUserInstitutionDomain = null;
         activeCommunityFeedScope = 'campus';
         setActiveCommunityScopeTab('campus');
@@ -697,19 +749,44 @@ function getAvatarColorClass(name) {
     return colors[Math.abs(hash) % colors.length];
 }
 
+function marketplaceKeywordMatchesText(text, keyword) {
+    const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (keyword.includes(' ')) {
+        return text.includes(keyword);
+    }
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(text);
+}
+
+function classifyMarketplaceCategory(categoryText) {
+    if (!categoryText || typeof categoryText !== 'string') return null;
+    const normalized = categoryText.trim().toLowerCase();
+    if (!normalized) return null;
+
+    if (MARKETPLACE_LEGACY_CATEGORY_MAP[normalized]) {
+        return MARKETPLACE_LEGACY_CATEGORY_MAP[normalized];
+    }
+
+    for (const [parent, keywords] of Object.entries(MARKETPLACE_CATEGORY_KEYWORDS)) {
+        const sortedKeywords = [...keywords].sort((a, b) => b.length - a.length);
+        for (const keyword of sortedKeywords) {
+            if (marketplaceKeywordMatchesText(normalized, keyword)) {
+                return parent;
+            }
+        }
+    }
+    return null;
+}
+
 function getCategoryBadgeStyle(category) {
-    switch (category) {
-        case 'Textbooks':
-        case 'Books & Notes':
+    switch (classifyMarketplaceCategory(category)) {
+        case MARKETPLACE_PARENT.TEXTBOOKS:
             return 'bg-purple-50 text-purple-700 border border-purple-200';
-        case 'Dorm Decor':
+        case MARKETPLACE_PARENT.DORM_DECOR:
             return 'bg-pink-50 text-pink-700 border border-pink-200';
-        case 'Electronics':
+        case MARKETPLACE_PARENT.ELECTRONICS:
             return 'bg-amber-50 text-amber-700 border border-amber-200';
-        case 'Clothing':
+        case MARKETPLACE_PARENT.CLOTHING:
             return 'bg-rose-50 text-rose-700 border border-rose-200';
-        case 'Skill Trade':
-            return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
         default:
             return 'bg-slate-50 text-slate-700 border border-slate-200';
     }
@@ -717,10 +794,7 @@ function getCategoryBadgeStyle(category) {
 
 function listingMatchesMarketplaceFilter(item, filter) {
     if (filter === 'All') return true;
-    if (filter === 'Textbooks') {
-        return item.category === 'Textbooks' || item.category === 'Books & Notes';
-    }
-    return item.category === filter;
+    return classifyMarketplaceCategory(item.category) === filter;
 }
 
 function setActiveMarketplaceFilterChip(filter) {
@@ -1810,12 +1884,14 @@ marketForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const currentUser = auth.currentUser;
     if (!currentUser) return;
+    const category = document.getElementById('itemCategory').value.trim();
+    if (!category) return;
     db.collection('listings').add({
         sellerUid: currentUser.uid,
         sellerName: currentUser.displayName || 'Homie',
         sellerEmail: currentUser.email,
         title: document.getElementById('itemTitle').value,
-        category: document.getElementById('itemCategory').value,
+        category,
         price: document.getElementById('itemPrice').value,
         description: document.getElementById('itemDescription').value,
         status: 'available',
@@ -1852,6 +1928,24 @@ window.deleteListing = function(id) {
 initMarketplaceFilterChips();
 
 // ============================================================
+// --- CAMPUS GROUPS / CIRCLES (modular dashboard) ---
+// ============================================================
+if (groupsDashboardRoot && typeof GroupsView !== 'undefined') {
+    GroupsView.init({
+        rootEl: groupsDashboardRoot,
+        getFirestore: () => db,
+        getCurrentUser: () => auth.currentUser,
+        resolveInstitutionDomain: async user => {
+            if (cachedUserInstitutionDomain) return cachedUserInstitutionDomain;
+            return ensureUserInstitutionDomain(user);
+        },
+        onDomainResolved: domain => {
+            cachedUserInstitutionDomain = domain;
+        }
+    });
+}
+
+// ============================================================
 // --- RUN CORE SERVICES ---
 // ============================================================
 listenToStudentNetwork();
@@ -1880,6 +1974,18 @@ listenToStudentNetwork();
 // }
 // Composite index required for campus-scoped feed:
 // Collection: posts — Fields: institutionDomain (Ascending), createdAt (Descending)
+//
+// match /groups/{groupId} {
+//   allow read: if true;
+//   allow create, update: if request.auth != null;
+// }
+// Document fields: name, description, createdBy, creatorName, createdAt,
+//   institutionDomain, members[], pendingRequests[]
+// match /groups/{groupId}/messages/{messageId} {
+//   allow read, create: if request.auth != null;
+// }
+// Composite index: groups — institutionDomain (Ascending), createdAt (Descending)
+// Composite index: messages subcollection — createdAt (Ascending)
 // Note: Likes require a rule allowing authenticated users to update
 // only the `likes` field on any post (or use Cloud Functions).
 // ============================================================
