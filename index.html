@@ -3,88 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Homies - Your Student Network</title>
+    <title>Homies — Student Collective</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cream: '#FBF9F6',
+                        charcoal: '#191919',
+                        coral: '#D95D39',
+                    },
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --brand:       #2ABFBF;
-            --brand-dark:  #1A7A7A;
-            --bg:          #F9F9F7;
-            --surface:     #FFFFFF;
-            --text-main:   #2D3748;
-            --text-muted:  #718096;
-            --cta:         #FF6B6B;
-            --cta-hover:   #E05555;
+            --cream: #FBF9F6;
+            --charcoal: #191919;
+            --coral: #D95D39;
+            --brand: #2ABFBF;
+            --brand-dark: #1A7A7A;
+            --bg: #FBF9F6;
+            --surface: #FFFFFF;
+            --text-main: #191919;
+            --text-muted: #5c5c5c;
+            --cta: #D95D39;
+            --cta-hover: #c24e2f;
         }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-main); }
-        h1, h2, h3, h4, h5, h6, .font-heading { font-family: 'Sora', sans-serif; }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--cream);
+            color: var(--charcoal);
+        }
+        .font-serif { font-family: 'Playfair Display', Georgia, serif; }
+        .editorial-nav-link {
+            font-size: 10px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: rgba(25, 25, 25, 0.55);
+            transition: all 0.3s ease-out;
+        }
+        .editorial-nav-link:hover { color: #191919; }
+        .editorial-nav-link--active {
+            color: #D95D39;
+            border-bottom: 1px solid #D95D39;
+            padding-bottom: 2px;
+        }
+        @keyframes editorialFadeUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .hero-reveal {
+            opacity: 0;
+            animation: editorialFadeUp 0.85s ease-out forwards;
+        }
+        .hero-reveal-delay-1 { animation-delay: 0.12s; }
+        .hero-reveal-delay-2 { animation-delay: 0.24s; }
+        .hero-reveal-delay-3 { animation-delay: 0.36s; }
+        .hero-reveal-delay-4 { animation-delay: 0.48s; }
     </style>
 </head>
-<body class="antialiased">
+<body class="antialiased bg-cream text-charcoal min-h-screen">
 
-    <nav class="bg-blue-950 text-white px-6 py-4 flex justify-between items-center shadow-md sticky top-0 z-40">
-        <div class="text-xl font-black tracking-wider cursor-pointer flex items-center gap-2" id="navLogo">
-            <i data-lucide="layers" class="w-6 h-6 text-blue-400"></i>
-            <span>HOMIES<span class="text-blue-400">.</span></span>
-        </div>
-        
-        <div class="space-x-6 hidden md:flex text-xs font-semibold uppercase tracking-wider items-center">
-            <button id="navHome" class="text-blue-400 transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none"><i data-lucide="home" class="w-4 h-4"></i> Home</button>
-            <button id="navNetwork" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none"><i data-lucide="users" class="w-4 h-4"></i> Network</button>
-            <a
-                href="https://homies.canny.io/community-requests"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none"
-            >
-                <i data-lucide="layout-list" class="w-4 h-4"></i> Network Feed
-            </a>
-            <button id="navCommunity" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none"><i data-lucide="message-square" class="w-4 h-4"></i> Feed</button>
-            <button id="navGroups" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none"><i data-lucide="circle-dot" class="w-4 h-4"></i> Circles</button>
-            <button id="navMarketplace" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none"><i data-lucide="shopping-bag" class="w-4 h-4"></i> Market</button>
-            
-            <button id="navMessages" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none hidden relative">
-                <i data-lucide="message-circle" class="w-4 h-4"></i> Chat
-                <span id="globalUnreadBadge" class="absolute -top-2 -right-3 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center hidden animate-pulse">0</span>
-            </button>
-            
-            <button id="navMyProfile" class="text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none hidden"><i data-lucide="user" class="w-4 h-4"></i> Profile</button>
-        </div>
-        
-        <div class="flex items-center gap-2" id="authBtnGroup">
-            <button id="logInBtn" class="text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wide px-4 py-2.5 transition focus:outline-none">
-                Log In
-            </button>
-            <button id="signUpBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2.5 rounded-xl transition text-xs uppercase tracking-wide shadow-md focus:outline-none">
-                Sign Up
-            </button>
-            <button id="signOutBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2.5 rounded-xl transition text-xs uppercase tracking-wide hidden focus:outline-none">
-                Log Out
-            </button>
-        </div>
-    </nav>
+    <header class="sticky top-0 z-40 bg-cream/90 backdrop-blur-md border-b border-stone-200">
+        <nav class="flex items-center justify-between w-full max-w-7xl mx-auto px-6 py-4">
+            <!-- LEFT SECTION: Logo -->
+            <div class="flex items-center space-x-3">
+                <button type="button" id="navLogo" class="flex items-center space-x-3 shrink-0 focus:outline-none transition-all duration-300 ease-out hover:opacity-80" aria-label="Homies home">
+                    <span class="w-9 h-9 border border-stone-300 flex items-center justify-center text-charcoal font-bold text-sm tracking-tight">H</span>
+                    <span class="text-[11px] font-semibold tracking-[0.28em] uppercase text-charcoal">Homies</span>
+                </button>
+            </div>
 
-    <main class="max-w-6xl mx-auto px-6 py-8 space-y-12">
+            <!-- CENTER SECTION: Editorial tag -->
+            <div class="hidden md:block text-xs tracking-widest text-stone-400">
+                Student Collective // Issue 01 // 2026
+            </div>
 
-        <section id="viewHome" class="flex flex-col items-center justify-center text-center py-20 space-y-8">
-            <div class="max-w-3xl mx-auto space-y-6">
-                <span class="bg-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-sm">
-                    Global Campus Directory
-                </span>
-                <h1 class="text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                    For the Students, <br class="hidden sm:inline">
-                    <span class="text-blue-600">by the Students.</span>
-                </h1>
-                <p class="text-base md:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
-                    Discover an exclusive campus ecosystem built to trade skills, purchase text resources, share insights anonymously, and map out your network.
+            <!-- RIGHT SECTION: Navigation + Auth -->
+            <div class="flex items-center space-x-8">
+                <div class="flex items-center space-x-6">
+                    <button type="button" id="navMarketplace" class="editorial-nav-link focus:outline-none">Marketplace</button>
+                    <button type="button" id="navGroups" class="editorial-nav-link focus:outline-none">Channels</button>
+                    <button type="button" id="navHome" class="editorial-nav-link focus:outline-none" data-scroll-target="pricing">Pricing Plans</button>
+                    <button type="button" id="navCommunity" class="editorial-nav-link focus:outline-none" data-scroll-target="manifesto">Manifesto</button>
+                </div>
+
+                <div class="flex items-center space-x-4 shrink-0" id="authBtnGroup">
+                    <button type="button" id="logInBtn" class="text-[10px] uppercase tracking-[0.22em] text-charcoal/70 hover:text-charcoal transition-all duration-300 ease-out focus:outline-none">
+                        Sign In
+                    </button>
+                    <button type="button" id="signUpBtn" class="text-[10px] uppercase tracking-[0.18em] font-medium border border-charcoal text-charcoal px-4 py-2.5 transition-all duration-300 ease-out hover:bg-charcoal hover:text-cream hover:scale-[1.02] active:scale-[0.98] focus:outline-none">
+                        Request Access
+                    </button>
+                    <button type="button" id="signOutBtn" class="hidden text-[10px] uppercase tracking-[0.22em] text-charcoal/70 hover:text-coral transition-all duration-300 ease-out focus:outline-none">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <div id="editorialAppRail" class="hidden border-t border-stone-200 bg-cream">
+            <div class="max-w-7xl mx-auto px-5 sm:px-8 py-2 flex flex-wrap items-center justify-center gap-5 sm:gap-8">
+                <button type="button" id="navNetwork" class="editorial-nav-link focus:outline-none">Network</button>
+                <button type="button" id="navMessages" class="editorial-nav-link focus:outline-none relative hidden">
+                    Chat
+                    <span id="globalUnreadBadge" class="absolute -top-2 -right-4 bg-coral text-cream text-[8px] font-bold min-w-[1rem] h-4 px-1 rounded-full flex items-center justify-center hidden">0</span>
+                </button>
+                <button type="button" id="navMyProfile" class="editorial-nav-link focus:outline-none hidden">Profile</button>
+                <a
+                    href="https://homies.canny.io/community-requests"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="editorial-nav-link focus:outline-none"
+                >Feedback</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 sm:px-8 py-8 space-y-12">
+
+        <section id="viewHome" class="flex flex-col items-center justify-center text-center py-24 px-2">
+            <p class="hero-reveal text-[10px] sm:text-[11px] uppercase tracking-[0.28em] text-coral font-medium mb-8">
+                Made for students, by the students // Concept 001
+            </p>
+            <h1 class="hero-reveal hero-reveal-delay-1 font-serif text-[2rem] sm:text-5xl md:text-[3.25rem] lg:text-[3.75rem] leading-[1.12] tracking-tight text-charcoal max-w-4xl mx-auto text-balance">
+                A clean dialogue between <em class="italic font-normal">academic study</em> and <em class="italic font-normal">student spaces</em>.
+            </h1>
+            <p class="hero-reveal hero-reveal-delay-2 mt-10 text-sm sm:text-base text-charcoal/65 max-w-2xl mx-auto leading-relaxed font-sans">
+                Homies redefines the university workspace by blending Discord-style focus rooms with a peer gig marketplace. Exchange assignments with token credits, coordinate housing reviews, and find study-first roommates without high transaction fees.
+            </p>
+            <div class="hero-reveal hero-reveal-delay-3 mt-14 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button type="button" id="homeExploreBtn" class="text-[10px] uppercase tracking-[0.22em] font-medium border border-charcoal text-charcoal px-8 py-3.5 transition-all duration-300 ease-out hover:bg-charcoal hover:text-cream hover:scale-[1.02] active:scale-[0.98] focus:outline-none">
+                    Enter the Collective
+                </button>
+            </div>
+            <div id="manifesto" class="hero-reveal hero-reveal-delay-4 mt-32 pt-16 border-t border-stone-200 w-full max-w-xl mx-auto scroll-mt-28">
+                <p class="text-[10px] uppercase tracking-[0.28em] text-coral mb-4">Manifesto</p>
+                <p class="text-sm text-charcoal/60 leading-relaxed font-sans">
+                    We believe campus life deserves the calm clarity of editorial design—not noisy feeds. Homies is a student-owned layer for commerce, conversation, and community.
                 </p>
             </div>
-            <div class="pt-4 w-full flex justify-center">
-                <button id="homeExploreBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-blue-600/20 transition-all text-sm uppercase tracking-wide flex items-center gap-2 group">
-                    Explore the Network 
-                    <i data-lucide="arrow-right" class="w-4 h-4 transition-transform group-hover:translate-x-1"></i>
-                </button>
+            <div id="pricing" class="mt-20 pt-12 border-t border-stone-200 w-full max-w-xl mx-auto scroll-mt-28">
+                <p class="text-[10px] uppercase tracking-[0.28em] text-coral mb-4">Pricing Plans</p>
+                <p class="text-sm text-charcoal/60 leading-relaxed font-sans">
+                    Free for all verified students. Token credits power marketplace exchanges—no hidden platform cuts on peer-to-peer trades.
+                </p>
             </div>
         </section>
 

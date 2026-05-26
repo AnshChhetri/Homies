@@ -333,6 +333,22 @@ window.handleStarClick = async function(uid, val) {
 // --- ROUTER VIEW CHANGER ENGINE ---
 // ============================================================
 
+const EDITORIAL_NAV_IDLE = 'editorial-nav-link focus:outline-none';
+const EDITORIAL_NAV_ACTIVE = 'editorial-nav-link editorial-nav-link--active focus:outline-none';
+
+function resetEditorialNavButtons() {
+    [navHome, navNetwork, navCommunity, navGroups, navMarketplace, navMyProfile, navMessages].forEach(btn => {
+        if (!btn) return;
+        btn.className = EDITORIAL_NAV_IDLE;
+        if (btn.id === 'navMessages') btn.classList.add('relative');
+    });
+}
+
+function scrollToHomeAnchor(anchorId) {
+    const el = document.getElementById(anchorId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function switchView(activeViewName) {
     if (typeof GroupsView !== 'undefined') GroupsView.deactivate();
 
@@ -344,48 +360,64 @@ function switchView(activeViewName) {
     viewMyProfile.classList.add('hidden');
     viewMessages.classList.add('hidden');
 
-    const buttons = [navHome, navNetwork, navCommunity, navGroups, navMarketplace, navMyProfile, navMessages];
-    buttons.forEach(btn => {
-        btn.className = "text-slate-300 hover:text-white transition pb-1 flex items-center gap-1.5 focus:outline-none relative";
-    });
+    resetEditorialNavButtons();
 
     if (activeViewName === 'home') {
         viewHome.classList.remove('hidden');
-        navHome.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none relative";
+        if (navHome) navHome.className = EDITORIAL_NAV_ACTIVE;
     } else if (activeViewName === 'network') {
         viewNetwork.classList.remove('hidden');
-        navNetwork.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none relative";
+        if (navNetwork) navNetwork.className = EDITORIAL_NAV_ACTIVE;
     } else if (activeViewName === 'community') {
         viewCommunity.classList.remove('hidden');
-        navCommunity.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none relative";
+        if (navCommunity) navCommunity.className = EDITORIAL_NAV_ACTIVE;
     } else if (activeViewName === 'groups') {
         viewGroups.classList.remove('hidden');
-        navGroups.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none relative";
+        if (navGroups) navGroups.className = EDITORIAL_NAV_ACTIVE;
         if (typeof GroupsView !== 'undefined') GroupsView.activate();
     } else if (activeViewName === 'marketplace') {
         viewMarketplace.classList.remove('hidden');
-        navMarketplace.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none relative";
+        if (navMarketplace) navMarketplace.className = EDITORIAL_NAV_ACTIVE;
     } else if (activeViewName === 'myprofile') {
         viewMyProfile.classList.remove('hidden');
-        navMyProfile.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none relative";
+        if (navMyProfile) navMyProfile.className = EDITORIAL_NAV_ACTIVE;
         closeHubEditingState();
     } else if (activeViewName === 'messages') {
         viewMessages.classList.remove('hidden');
-        navMessages.className = "text-blue-400 font-semibold transition border-b-2 border-blue-400 pb-1 flex items-center gap-1.5 focus:outline-none relative";
+        if (navMessages) {
+            navMessages.className = EDITORIAL_NAV_ACTIVE + ' relative';
+        }
         if (activeChatId) { clearUnreadBadgeStateMarker(activeChatId); }
     }
     lucide.createIcons();
 }
 
-navHome.addEventListener('click', () => switchView('home'));
-navNetwork.addEventListener('click', () => switchView('network'));
-navCommunity.addEventListener('click', () => switchView('community'));
-navGroups.addEventListener('click', () => switchView('groups'));
-navMarketplace.addEventListener('click', () => switchView('marketplace'));
-navMyProfile.addEventListener('click', () => switchView('myprofile'));
-navMessages.addEventListener('click', () => switchView('messages'));
-navLogo.addEventListener('click', () => switchView('home'));
-homeExploreBtn.addEventListener('click', () => switchView('network'));
+const editorialAppRail = document.getElementById('editorialAppRail');
+
+if (navHome) {
+    navHome.addEventListener('click', () => {
+        switchView('home');
+        const target = navHome.dataset.scrollTarget;
+        if (target) requestAnimationFrame(() => scrollToHomeAnchor(target));
+    });
+}
+if (navCommunity) {
+    navCommunity.addEventListener('click', () => {
+        if (auth.currentUser) {
+            switchView('community');
+        } else {
+            switchView('home');
+            requestAnimationFrame(() => scrollToHomeAnchor(navCommunity.dataset.scrollTarget || 'manifesto'));
+        }
+    });
+}
+if (navNetwork) navNetwork.addEventListener('click', () => switchView('network'));
+if (navGroups) navGroups.addEventListener('click', () => switchView('groups'));
+if (navMarketplace) navMarketplace.addEventListener('click', () => switchView('marketplace'));
+if (navMyProfile) navMyProfile.addEventListener('click', () => switchView('myprofile'));
+if (navMessages) navMessages.addEventListener('click', () => switchView('messages'));
+if (navLogo) navLogo.addEventListener('click', () => switchView('home'));
+if (homeExploreBtn) homeExploreBtn.addEventListener('click', () => switchView('network'));
 
 // ============================================================
 // --- REALTIME USER PRESENCE ENGINE ---
@@ -672,6 +704,7 @@ auth.onAuthStateChanged(user => {
         communityPostBox.classList.remove('hidden');
         navMyProfile.classList.remove('hidden');
         navMessages.classList.remove('hidden');
+        if (editorialAppRail) editorialAppRail.classList.remove('hidden');
         updateUserOnlineStatus('online');
         renderMyShowcaseDashboard(user.uid);
         updateCommunityComposerAvatar();
@@ -693,6 +726,7 @@ auth.onAuthStateChanged(user => {
         communityPostBox.classList.add('hidden');
         navMyProfile.classList.add('hidden');
         navMessages.classList.add('hidden');
+        if (editorialAppRail) editorialAppRail.classList.add('hidden');
         marketModal.classList.add('hidden');
         onboardingModal.classList.add('hidden');
         if (chatMessagesUnsubscribe) chatMessagesUnsubscribe();
